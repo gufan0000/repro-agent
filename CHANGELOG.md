@@ -12,6 +12,11 @@ Planned, roughly in order:
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
 - **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
+## [0.1.2] — 2026-08-14
+
+- The published tarball's README carried a stale status line: it still said `0.1.0` and `60 tests`, because those lines were corrected after 0.1.1 had already gone out.
+- First release published by CI through npm trusted publishing, so this is the first version carrying a provenance attestation.
+
 ## [0.1.1] — 2026-08-14
 
 - `--version` now prints `repro-agent <package version> (protocol <protocol version>)`. It previously printed only the protocol version, so a bug report quoting it sent the maintainer to the wrong code. The package version is baked in by the generator, and CI's drift check catches a bump of one without the other.
