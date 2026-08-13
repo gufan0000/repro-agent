@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (node ${{ matrix.node }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  generated:
+    name: generated files are in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      # protocol/** and spec/** are the source of truth; the embedded copies must match.
+      - name: protocol and schema artifacts
+        run: npm run generate -- --check
+      - name: typecheck
+        run: npx tsc -p tsconfig.json --noEmit
+      - name: checked-in adapters
+        run: |
+          npm run build
+          node tools/build-adapters.mjs
+          git diff --exit-code -- adapters/ || {
+            echo "::error::adapters/ is stale — run 'npm run build && node tools/build-adapters.mjs' and commit"
+            exit 1
+          }
+
+  dogfood:
+    name: our own profile is valid
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node dist/index.js validate .bugbridge/project.json
+      - run: node dist/index.js validate examples/*/project.json
+      - name: end-to-end kit build
+        run: |
+          node dist/index.js build --profile .bugbridge/project.json --out /tmp/kit
+          test -f /tmp/kit/bugbridge-cli-support.html
+          node dist/index.js task --profile .bugbridge/project.json --summary "smoke test" -o /tmp/task.md
+          node dist/index.js validate /tmp/task.md

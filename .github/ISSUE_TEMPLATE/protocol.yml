@@ -1,0 +1,41 @@
+name: Protocol change
+description: Propose wording that closes a loophole, or a new option.
+title: "[protocol] "
+labels: ["protocol"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Protocol text lives in `protocol/en/` and `protocol/zh-CN/` and is the source of truth
+        for the CLI, the offline page and every adapter. Changes here affect every user, so
+        they get discussed before they get merged.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - Close a loophole in existing wording
+        - Add a new instruction or requirement
+        - Add or change an option axis
+        - Translation fix
+    validations:
+      required: true
+  - type: textarea
+    id: loophole
+    attributes:
+      label: What can go wrong today
+      description: Ideally a concrete run where a model did the wrong thing while technically obeying the text.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed wording
+      description: Actual replacement text, not a description of it. Both languages if you can — English alone is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: cost
+    attributes:
+      label: What does this cost?
+      description: More tokens per task, a stricter requirement small models may fail, more friction for the user. Every addition costs something.

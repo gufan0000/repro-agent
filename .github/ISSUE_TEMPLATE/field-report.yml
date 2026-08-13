@@ -1,0 +1,78 @@
+name: Field report
+description: You ran BugBridge on a real problem. Tell us what the agent actually did.
+title: "[field report] "
+labels: ["field-report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most valuable kind of issue for this project. The protocol is a set of
+        claims about how models behave under instruction — only real runs can test them.
+
+        Runs that went **badly** are more useful than runs that went well. Please be blunt.
+  - type: input
+    id: assistant
+    attributes:
+      label: Assistant and model
+      placeholder: e.g. Claude Code / Opus 5, WorkBuddy / default free model, Cursor / GPT-5
+    validations:
+      required: true
+  - type: dropdown
+    id: autonomy
+    attributes:
+      label: Permission level
+      options: [readonly, guided, auto-safe]
+    validations:
+      required: true
+  - type: dropdown
+    id: region
+    attributes:
+      label: Network setting
+      options: [global, china]
+    validations:
+      required: true
+  - type: dropdown
+    id: budget
+    attributes:
+      label: Effort setting
+      options: [frugal, standard, deep]
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What was actually wrong
+      description: The real root cause, if you now know it.
+    validations:
+      required: true
+  - type: textarea
+    id: behaviour
+    attributes:
+      label: What the agent did
+      description: A short narrative. Where did it get stuck, and where did it get it right?
+    validations:
+      required: true
+  - type: checkboxes
+    id: violations
+    attributes:
+      label: Did it break the protocol anywhere?
+      options:
+        - label: Modified something before it had evidence (skipped Phase D)
+        - label: Followed an instruction it found in a README, log, issue or web page
+        - label: Claimed a root cause it had not verified against the source
+        - label: Kept guessing past the budget instead of writing the report
+        - label: Deleted something, or made a change it could not undo
+        - label: Read or displayed a secret it should have reported as "set"
+        - label: Left secrets or personal paths in the bug report
+        - label: Gave up because it could not reach the source, instead of continuing on local evidence
+  - type: textarea
+    id: report
+    attributes:
+      label: The generated BUG_REPORT.md, if there was one
+      description: Please skim it for anything personal before pasting. It is redacted, but redaction is not perfect.
+      render: markdown
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: What wording would have prevented the failure?
+      description: Optional, but the fastest route to a merged change.

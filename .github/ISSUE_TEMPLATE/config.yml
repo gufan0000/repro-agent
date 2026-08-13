@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security issue
+    url: https://github.com/gufan0000/bugbridge/security/advisories/new
+    about: Prompt-injection bypasses, policy laundering, and redaction leaks go here — not in a public issue.
+  - name: Question or idea
+    url: https://github.com/gufan0000/bugbridge/discussions
+    about: Not sure it is a bug? Start a discussion.

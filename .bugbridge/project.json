@@ -1,0 +1,70 @@
+{
+  "protocol": "bugbridge/project",
+  "protocol_version": "1.0",
+  "project": {
+    "name": "BugBridge CLI",
+    "repository": "https://github.com/gufan0000/bugbridge",
+    "repository_public": true,
+    "mirrors": [],
+    "deepwiki": false,
+    "issue_tracker": "https://github.com/gufan0000/bugbridge/issues"
+  },
+  "defaults": {
+    "language": "en",
+    "region": "global",
+    "autonomy": "guided",
+    "budget_profile": "standard"
+  },
+  "environment": {
+    "supported_os": ["Windows", "macOS", "Linux"],
+    "runtimes": ["Node.js >= 18.17"]
+  },
+  "local_targets": {
+    "any": {
+      "config_paths": [".bugbridge/project.json"],
+      "data_paths": ["bugbridge-support/"]
+    }
+  },
+  "diagnostic_hints": {
+    "known_issues": [
+      {
+        "symptom": "`bugbridge build` says the profile is not valid, but it looks fine",
+        "cause": "A field name was invented, or a `deny` policy value was loosened. The schema uses additionalProperties: false, so unknown keys are errors rather than being ignored.",
+        "fix": "Run `bugbridge validate .bugbridge/project.json` — it names the exact path of the offending field.",
+        "reference": "spec/project.schema.json"
+      },
+      {
+        "symptom": "The generated task or HTML page still contains {{ROUTE_CHAIN}} or {{AUTONOMY_BLOCK}}",
+        "cause": "protocol/** was edited without regenerating the embedded copies.",
+        "fix": "Run `npm run generate` and commit src/core/protocol-data.ts and web/index.html.",
+        "reference": "tools/build-protocol.mjs"
+      },
+      {
+        "symptom": "The offline HTML page shows an empty preview and does nothing when Generate is pressed",
+        "cause": "The page was saved by a tool that stripped or re-encoded the inline script, or the PROTOCOL block is empty.",
+        "fix": "Re-download the original file. Check that the browser console reports no syntax error in the inline script."
+      }
+    ],
+    "known_safe_checks": [
+      "node --version  (must be 18.17 or newer)",
+      "npx bugbridge validate <the file that is failing>",
+      "Confirm the file being validated starts with a \"protocol\" field"
+    ],
+    "known_dangerous_actions": [
+      "Do not edit src/core/protocol-data.ts or src/core/schema-data.ts by hand — they are generated and will be overwritten",
+      "Do not loosen a `deny` value in a policy block to work around a validation error"
+    ],
+    "verification_steps": [
+      "npm test  — all tests must pass",
+      "npx bugbridge task --name X --summary y | head -20  — must render without placeholders"
+    ]
+  },
+  "escalation": {
+    "report_path": "BUG_REPORT.md",
+    "redact": true,
+    "extra_questions": [
+      "Which AI assistant and model were you using?",
+      "Which of the four options (permission / network / effort / assistant) were selected?"
+    ]
+  }
+}

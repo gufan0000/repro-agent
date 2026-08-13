@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tgz
+*.log
+.DS_Store
+Thumbs.db
+
+# Generated output. `.bugbridge/project.json` is meant to be committed — that is the point.
+bugbridge-support/
+BUG_REPORT.md

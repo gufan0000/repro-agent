@@ -1,0 +1,6 @@
+# Generated artifacts are byte-compared in CI, so line endings must be stable
+# regardless of which platform a contributor is on.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

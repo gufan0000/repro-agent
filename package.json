@@ -1,0 +1,63 @@
+{
+  "name": "bugbridge",
+  "version": "0.1.0",
+  "description": "Turn \"it doesn't work\" into a fix — or a bug report a maintainer can actually act on. An agent-agnostic diagnostic protocol that runs on the user's own machine.",
+  "keywords": [
+    "ai-agent",
+    "bug-report",
+    "troubleshooting",
+    "diagnostics",
+    "issue-triage",
+    "support",
+    "open-source-maintainers",
+    "agents-md",
+    "claude-code",
+    "prompt-injection"
+  ],
+  "homepage": "https://github.com/gufan0000/bugbridge#readme",
+  "bugs": "https://github.com/gufan0000/bugbridge/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gufan0000/bugbridge.git"
+  },
+  "license": "MIT",
+  "author": "gufan0000",
+  "type": "module",
+  "bin": {
+    "bugbridge": "dist/index.js"
+  },
+  "main": "dist/core/index.js",
+  "types": "dist/core/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./spec/task.schema.json": "./spec/task.schema.json",
+    "./spec/project.schema.json": "./spec/project.schema.json"
+  },
+  "files": [
+    "dist",
+    "spec",
+    "protocol",
+    "adapters",
+    "web",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "generate": "node tools/build-protocol.mjs",
+    "build": "npm run generate && tsc -p tsconfig.json",
+    "test": "npm run build && node --test \"test/**/*.test.js\"",
+    "check": "npm run generate -- --check && tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

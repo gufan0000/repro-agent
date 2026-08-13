@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/gufan0000/bugbridge/main/spec/project.schema.json",
+  "title": "BugBridge Project Profile",
+  "description": "Committed by a maintainer to their own repository as .bugbridge/project.json. It teaches any AI agent how to diagnose this specific piece of software on an end user's machine, and how to report back when it cannot.",
+  "type": "object",
+  "required": ["protocol", "protocol_version", "project"],
+  "additionalProperties": false,
+  "properties": {
+    "protocol": { "const": "bugbridge/project" },
+    "protocol_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "pattern": "^$|^https://[^\\s]+$" },
+        "repository_public": { "type": "boolean", "default": true },
+        "mirrors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["url"],
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string", "pattern": "^https://[^\\s]+$" },
+              "kind": { "enum": ["gitcode", "gitee", "codeberg", "gitlab", "sourcehut", "mirror", "other"] },
+              "note": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+        "deepwiki": { "type": "boolean", "default": false },
+        "docs_url": { "type": "string" },
+        "issue_tracker": { "type": "string" }
+      }
+    },
+
+    "defaults": {
+      "type": "object",
+      "description": "Pre-selected values for the four option axes. The end user can still override them.",
+      "additionalProperties": false,
+      "properties": {
+        "language": { "enum": ["zh-CN", "en"] },
+        "region": { "enum": ["global", "china"] },
+        "autonomy": { "enum": ["readonly", "guided", "auto-safe"] },
+        "budget_profile": { "enum": ["frugal", "standard", "deep"] },
+        "agent_host": { "enum": ["generic", "workbuddy", "claude-code", "cursor", "codex", "cline", "other"] }
+      },
+      "default": {}
+    },
+
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "supported_os": {
+          "type": "array",
+          "items": { "enum": ["Windows", "macOS", "Linux"] },
+          "default": []
+        },
+        "runtimes": { "type": "array", "items": { "type": "string" }, "default": [] }
+      },
+      "default": {}
+    },
+
+    "local_targets": {
+      "type": "object",
+      "description": "Per-OS locations. Use platform placeholders such as %APPDATA%, ~/Library, $XDG_CONFIG_HOME.",
+      "additionalProperties": false,
+      "properties": {
+        "windows": { "$ref": "#/definitions/targetSet" },
+        "macos": { "$ref": "#/definitions/targetSet" },
+        "linux": { "$ref": "#/definitions/targetSet" },
+        "any": { "$ref": "#/definitions/targetSet" }
+      },
+      "default": {}
+    },
+
+    "diagnostic_hints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "known_issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["symptom"],
+            "additionalProperties": false,
+            "properties": {
+              "symptom": { "type": "string" },
+              "cause": { "type": "string" },
+              "fix": { "type": "string" },
+              "affected_versions": { "type": "string" },
+              "reference": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+        "known_safe_checks": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "known_dangerous_actions": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "verification_steps": { "type": "array", "items": { "type": "string" }, "default": [] }
+      },
+      "default": {}
+    },
+
+    "policy_overrides": {
+      "type": "object",
+      "description": "A maintainer may only make the policy STRICTER. Attempts to loosen a 'deny' constant are rejected by `bugbridge validate`.",
+      "additionalProperties": false,
+      "properties": {
+        "no_full_repository_download": { "type": "boolean" },
+        "allow_modify_target_app_files": { "enum": ["deny", "ask", "ask-after-backup"] },
+        "allow_install_dependencies": { "enum": ["deny", "ask"] },
+        "allow_admin_privileges": { "enum": ["deny", "ask"] },
+        "allow_run_repository_scripts": { "enum": ["deny", "ask"] }
+      },
+      "default": {}
+    },
+
+    "escalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "report_path": { "type": "string", "default": "BUG_REPORT.md" },
+        "issue_template_url": { "type": "string" },
+        "redact": { "type": "boolean", "default": true },
+        "extra_questions": { "type": "array", "items": { "type": "string" }, "default": [] }
+      },
+      "default": {}
+    }
+  },
+
+  "definitions": {
+    "targetSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "installation_paths": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "executable_paths": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "log_paths": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "config_paths": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "data_paths": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "process_names": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "service_names": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "ports": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 65535 }, "default": [] },
+        "registry_paths_read_only": { "type": "array", "items": { "type": "string" }, "default": [] }
+      }
+    }
+  }
+}

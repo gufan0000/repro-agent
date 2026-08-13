@@ -1,0 +1,52 @@
+name: Bug in the tooling
+description: The CLI, the offline page, or the schema misbehaves.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For problems with *agent behaviour*, please use the **Field report** template instead.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part
+      options:
+        - CLI (bugbridge init / build / task / validate / redact / adapters)
+        - Offline HTML page
+        - Schema (spec/*.schema.json)
+        - Generated adapter output
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`npx bugbridge --version`, or the release the HTML page came from"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and Node version
+      placeholder: Windows 11 24H2, Node 22.11.0
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact command or click sequence.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Full error text or console output. Run it through `npx bugbridge redact` first if it contains anything from your machine.
+      render: shell
