@@ -183,3 +183,18 @@ test('redact cleans a file end to end', () => {
   assert.match(cleaned, /C:\\Users\\<USER>\\app\.log/);
   assert.match(cleaned, /0x80070005/, 'error codes must survive');
 });
+
+test('-o creates the directory it was told to write into', () => {
+  const dir = sandbox();
+  // Users type paths like reports/2026-08/task.md. Failing with ENOENT on a path
+  // the user just supplied is not a useful answer.
+  const out = join(dir, 'reports', '2026-08', 'REPRO_TASK.md');
+  run(['task', '--name', 'X', '--summary', 'y', '-o', out]);
+  assert.ok(existsSync(out));
+
+  const redacted = join(dir, 'nested', 'again', 'clean.md');
+  const input = join(dir, 'in.md');
+  writeFileSync(input, 'token=ghp_0123456789abcdefghijABCDEFGHIJ0123\n');
+  run(['redact', input, '-o', redacted]);
+  assert.ok(existsSync(redacted));
+});

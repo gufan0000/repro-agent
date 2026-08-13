@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { Args } from '../index.js';
 import type { Autonomy, BudgetProfile, Language, ProjectProfile, Region, AgentHost } from '../core/types.js';
 import { validateProjectProfile } from '../core/task.js';
@@ -41,6 +42,18 @@ export function loadProfile(path: string): ProjectProfile {
   const errors = validateProjectProfile(data);
   if (errors.length) throw new Error(`${path} is not a valid Repro Agent project profile:\n${formatErrors(errors)}`);
   return data as ProjectProfile;
+}
+
+/**
+ * Write to a user-supplied `-o` path, creating the directory if it is missing.
+ *
+ * People pass paths like `reports/2026-08/BUG_REPORT.md` and expect it to work.
+ * Failing with ENOENT on a path the user just typed is not a useful answer.
+ */
+export function writeOut(path: string, contents: string): void {
+  const parent = dirname(path);
+  if (parent && parent !== '.') mkdirSync(parent, { recursive: true });
+  writeFileSync(path, contents, 'utf8');
 }
 
 /** Pull the ```json fenced block out of a rendered task markdown file. */

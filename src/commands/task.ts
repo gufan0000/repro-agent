@@ -1,8 +1,7 @@
-import { writeFileSync } from 'node:fs';
 import type { Args } from '../index.js';
 import { buildTask, assertValidTask } from '../core/task.js';
 import { renderTask } from '../core/render.js';
-import { str, pick, loadProfile, LANGUAGES, REGIONS, AUTONOMIES, BUDGETS, HOSTS } from './shared.js';
+import { str, pick, loadProfile, writeOut, LANGUAGES, REGIONS, AUTONOMIES, BUDGETS, HOSTS } from './shared.js';
 import type { Mirror } from '../core/types.js';
 
 export function cmdTask(args: Args): number {
@@ -54,7 +53,7 @@ export function cmdTask(args: Args): number {
 
   const out = str(args, 'o') || str(args, 'out');
   if (out) {
-    writeFileSync(out, markdown, 'utf8');
+    writeOut(out, markdown);
     process.stderr.write(`wrote ${out} (${markdown.length.toLocaleString()} characters)\n`);
   } else {
     process.stdout.write(markdown);

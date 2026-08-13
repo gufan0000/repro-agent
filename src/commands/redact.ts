@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import type { Args } from '../index.js';
 import { redact } from '../core/redact.js';
-import { str } from './shared.js';
+import { str, writeOut } from './shared.js';
 
 export function cmdRedact(args: Args): number {
   const file = args._[1];
@@ -15,7 +15,7 @@ export function cmdRedact(args: Args): number {
 
   const out = str(args, 'o') || str(args, 'out');
   if (out) {
-    writeFileSync(out, result.text, 'utf8');
+    writeOut(out, result.text);
     process.stderr.write(`wrote ${out}\n`);
   } else {
     process.stdout.write(result.text);
