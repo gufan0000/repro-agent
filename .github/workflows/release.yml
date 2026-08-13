@@ -36,6 +36,18 @@ jobs:
 
       - run: npm ci
 
+      # When a publish fails, the two things you need to know first are whether npm is new
+      # enough to do OIDC at all, and whether the runner was actually granted an identity
+      # token. Neither is visible in the failure output, so state both up front.
+      - name: Report publish preconditions
+        run: |
+          echo "npm $(npm --version)  (trusted publishing needs >= 11.5.1)"
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "OIDC identity token: available"
+          else
+            echo "OIDC identity token: NOT available — the job lacks id-token: write"
+          fi
+
       - name: Refuse to publish a tag that disagrees with package.json
         if: startsWith(github.ref, 'refs/tags/')
         run: |
