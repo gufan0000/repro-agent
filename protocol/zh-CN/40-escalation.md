@@ -7,7 +7,7 @@
 ```markdown
 # <一句话症状，具体到可以被搜索到>
 
-**由 BugBridge 生成** · 协议 {{PROTOCOL_VERSION}} · 自主级别 `{{AUTONOMY}}` · {{TIMESTAMP}}
+**由 Repro Agent 生成** · 协议 {{PROTOCOL_VERSION}} · 自主级别 `{{AUTONOMY}}` · {{TIMESTAMP}}
 
 ## 摘要
 两三句话。什么坏了、什么时候坏、多大概率坏。

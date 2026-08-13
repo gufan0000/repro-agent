@@ -5,6 +5,6 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Generated output. `.bugbridge/project.json` is meant to be committed — that is the point.
-bugbridge-support/
+# Generated output. `.repro/project.json` is meant to be committed — that is the point.
+repro-support/
 BUG_REPORT.md

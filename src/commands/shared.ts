@@ -39,7 +39,7 @@ export function loadProfile(path: string): ProjectProfile {
     throw new Error(`${path} is not valid JSON: ${(error as Error).message}`);
   }
   const errors = validateProjectProfile(data);
-  if (errors.length) throw new Error(`${path} is not a valid BugBridge project profile:\n${formatErrors(errors)}`);
+  if (errors.length) throw new Error(`${path} is not a valid Repro Agent project profile:\n${formatErrors(errors)}`);
   return data as ProjectProfile;
 }
 

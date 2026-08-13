@@ -1,30 +1,33 @@
 {
-  "name": "bugbridge",
+  "name": "repro-agent",
   "version": "0.1.0",
-  "description": "Turn \"it doesn't work\" into a fix — or a bug report a maintainer can actually act on. An agent-agnostic diagnostic protocol that runs on the user's own machine.",
+  "description": "No repro, no issue. An agent that runs on the user's machine: diagnoses the problem, fixes what is safely fixable, and otherwise produces a bug report with real reproduction evidence.",
   "keywords": [
     "ai-agent",
     "bug-report",
+    "issue-triage",
+    "reproduction",
+    "repro",
     "troubleshooting",
     "diagnostics",
-    "issue-triage",
     "support",
     "open-source-maintainers",
     "agents-md",
     "claude-code",
     "prompt-injection"
   ],
-  "homepage": "https://github.com/gufan0000/bugbridge#readme",
-  "bugs": "https://github.com/gufan0000/bugbridge/issues",
+  "homepage": "https://github.com/gufan0000/repro-agent#readme",
+  "bugs": "https://github.com/gufan0000/repro-agent/issues",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gufan0000/bugbridge.git"
+    "url": "git+https://github.com/gufan0000/repro-agent.git"
   },
   "license": "MIT",
   "author": "gufan0000",
   "type": "module",
   "bin": {
-    "bugbridge": "dist/index.js"
+    "repro-agent": "dist/index.js",
+    "repro": "dist/index.js"
   },
   "main": "dist/core/index.js",
   "types": "dist/core/index.d.ts",

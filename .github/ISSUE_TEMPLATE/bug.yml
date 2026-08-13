@@ -12,7 +12,7 @@ body:
     attributes:
       label: Which part
       options:
-        - CLI (bugbridge init / build / task / validate / redact / adapters)
+        - CLI (repro-agent init / build / task / validate / redact / adapters)
         - Offline HTML page
         - Schema (spec/*.schema.json)
         - Generated adapter output
@@ -23,7 +23,7 @@ body:
     id: version
     attributes:
       label: Version
-      description: "`npx bugbridge --version`, or the release the HTML page came from"
+      description: "`npx repro-agent --version`, or the release the HTML page came from"
     validations:
       required: true
   - type: input
@@ -48,5 +48,5 @@ body:
     id: output
     attributes:
       label: Output
-      description: Full error text or console output. Run it through `npx bugbridge redact` first if it contains anything from your machine.
+      description: Full error text or console output. Run it through `npx repro-agent redact` first if it contains anything from your machine.
       render: shell

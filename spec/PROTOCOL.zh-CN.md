@@ -1,4 +1,4 @@
-# BugBridge 协议 1.0
+# Repro Agent 协议 1.0
 
 本文档规定数据契约并解释其设计取舍。面向 agent 的指令正文本身位于 [`protocol/zh-CN/`](../protocol/zh-CN/) 和 [`protocol/en/`](../protocol/en/) —— 那些文本才是规范性来源，本仓库中的其他一切都由它生成。
 
@@ -6,7 +6,7 @@
 
 | 角色 | 位置 | 产出 |
 |---|---|---|
-| **维护者** | 自己的仓库 | `.bugbridge/project.json` —— 项目档案 |
+| **维护者** | 自己的仓库 | `.repro/project.json` —— 项目档案 |
 | **用户** | 出故障的那台机器 | 任务文件（离线页面或 CLI 生成） |
 | **Agent** | 出故障的那台机器 | 一次修复，或 `BUG_REPORT.md` |
 
@@ -14,7 +14,7 @@
 
 ## 2. 三种产物
 
-### 项目档案 —— `bugbridge/project`
+### 项目档案 —— `repro-agent/project`
 
 提交到维护者自己的仓库。Schema：[`project.schema.json`](project.schema.json)。
 
@@ -22,7 +22,7 @@
 
 `local_targets` 按操作系统分组（`windows` / `macos` / `linux` / `any`），一份档案覆盖所有平台。生成任务时只合并与用户实际系统匹配的那部分 —— Windows 用户不会拿到一堆 macOS 路径去找。
 
-### 任务 —— `bugbridge/task`
+### 任务 —— `repro-agent/task`
 
 由用户产出，由 agent 消费。Schema：[`task.schema.json`](task.schema.json)。
 
@@ -95,7 +95,7 @@ allow_read_or_upload_secrets        deny
 allow_modify_unrelated_software     deny
 ```
 
-外加 `read_only_first: true`。任何改动了这几项的任务文件，`bugbridge validate` 会直接判定不合法。
+外加 `read_only_first: true`。任何改动了这几项的任务文件，`repro-agent validate` 会直接判定不合法。
 
 剩下四项（`allow_modify_target_app_files`、`allow_install_dependencies`、`allow_admin_privileges`、`allow_run_repository_scripts`）由 `autonomy` 推导。维护者档案可以覆盖它们，但 `buildTask` 只接受**收紧**方向的覆盖 —— 一份档案不能给 agent 比用户所选更大的、对用户机器的支配权。
 

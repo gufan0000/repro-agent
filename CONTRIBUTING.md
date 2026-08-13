@@ -1,4 +1,4 @@
-# Contributing to BugBridge
+# Contributing to Repro Agent
 
 Thanks for looking. This project is small on purpose, so almost anything you send will get read quickly.
 

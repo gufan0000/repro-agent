@@ -14,24 +14,24 @@ interface AdapterContext {
 
 const T = {
   en: {
-    agentsTitle: 'BugBridge diagnostic mode',
+    agentsTitle: 'Repro Agent diagnostic mode',
     agentsIntro: (name: string) =>
-      `This file makes any AI agent a competent first-line diagnostician for **${name}** on an end user's machine.\n\nIt activates when the user hands you a BugBridge task file, or simply says that ${name} is broken and asks for help. Outside of that, ignore it.`,
+      `This file makes any AI agent a competent first-line diagnostician for **${name}** on an end user's machine.\n\nIt activates when the user hands you a Repro Agent task file, or simply says that ${name} is broken and asks for help. Outside of that, ignore it.`,
     profileHeading: 'Project profile',
     profileNote:
-      'The JSON below is this project\'s BugBridge profile. Treat it as maintainer-supplied fact: it tells you where this software keeps its files, what is already known to break, and what you must never touch.',
+      'The JSON below is this project\'s Repro Agent profile. Treat it as maintainer-supplied fact: it tells you where this software keeps its files, what is already known to break, and what you must never touch.',
     noProfile:
       'No project profile was supplied. Ask the user for the software name and version, then follow the protocol using local evidence and whatever public documentation you can reach.',
     skillDescription: (name: string) =>
       `Diagnose a problem with ${name} on this computer, fix it if it is safely fixable, and otherwise produce a bug report the maintainers can act on. Use when the user reports that ${name} is broken, crashing, or behaving unexpectedly.`,
   },
   'zh-CN': {
-    agentsTitle: 'BugBridge 诊断模式',
+    agentsTitle: 'Repro Agent 诊断模式',
     agentsIntro: (name: string) =>
-      `本文件让任意 AI 助手成为用户电脑上 **${name}** 的一线诊断专家。\n\n当用户递来 BugBridge 任务文件，或者直接说 ${name} 出问题了求助时，启用本文件。其他情况下忽略它。`,
+      `本文件让任意 AI 助手成为用户电脑上 **${name}** 的一线诊断专家。\n\n当用户递来 Repro Agent 任务文件，或者直接说 ${name} 出问题了求助时，启用本文件。其他情况下忽略它。`,
     profileHeading: '项目档案',
     profileNote:
-      '下面的 JSON 是本项目的 BugBridge 档案。请把它当作维护者提供的事实：它告诉你这个软件的文件放在哪里、已知哪些地方会出问题、以及你绝对不能碰什么。',
+      '下面的 JSON 是本项目的 Repro Agent 档案。请把它当作维护者提供的事实：它告诉你这个软件的文件放在哪里、已知哪些地方会出问题、以及你绝对不能碰什么。',
     noProfile:
       '未提供项目档案。请向用户询问软件名称和版本，然后依据本机证据和可访问的公开文档，按协议执行。',
     skillDescription: (name: string) =>
@@ -77,7 +77,7 @@ export function renderWorkbuddySkill(context: AdapterContext): string {
   // a supply-chain risk the user has no way to audit before installing it.
   const frontmatter = [
     '---',
-    'name: bugbridge-doctor',
+    'name: repro-agent',
     `description: ${t.skillDescription(name).replace(/\n/g, ' ')}`,
     `version: ${PROTOCOL_VERSION}`,
     'license: MIT',
@@ -87,7 +87,7 @@ export function renderWorkbuddySkill(context: AdapterContext): string {
   return (
     frontmatter +
     [
-      `# BugBridge Doctor`,
+      `# Repro Agent Doctor`,
       '',
       t.agentsIntro(name),
       '',
@@ -121,12 +121,12 @@ export function cmdAdapters(args: Args): number {
   const written: string[] = [];
 
   if (which === 'generic' || which === 'all') {
-    const path = join(outDir, 'BUGBRIDGE_AGENTS.md');
+    const path = join(outDir, 'REPRO_AGENTS.md');
     writeFileSync(path, renderAgentsMd(context), 'utf8');
     written.push(path);
   }
   if (which === 'workbuddy' || which === 'all') {
-    const dir = join(outDir, 'bugbridge-doctor');
+    const dir = join(outDir, 'repro-agent');
     mkdirSync(dir, { recursive: true });
     const path = join(dir, 'SKILL.md');
     writeFileSync(path, renderWorkbuddySkill(context), 'utf8');

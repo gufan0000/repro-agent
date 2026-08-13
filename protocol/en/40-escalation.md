@@ -7,7 +7,7 @@ Optimise it for one reader: a maintainer who has never seen this machine, has te
 ```markdown
 # <one-line symptom, specific enough to search for>
 
-**Reported via BugBridge** · protocol {{PROTOCOL_VERSION}} · autonomy `{{AUTONOMY}}` · {{TIMESTAMP}}
+**Reported via Repro Agent** · protocol {{PROTOCOL_VERSION}} · autonomy `{{AUTONOMY}}` · {{TIMESTAMP}}
 
 ## Summary
 Two or three sentences. What breaks, when, and how reliably.

@@ -10,7 +10,7 @@ Planned, roughly in order:
 - **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
 - **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
-- **`bugbridge doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
+- **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
 ## [0.1.0] — 2026-08-14
 
@@ -34,7 +34,7 @@ First release. The user-side loop is complete: describe a problem, hand it to an
 
 ### Tooling
 
-- `bugbridge` CLI with `init`, `build`, `task`, `adapters`, `validate`, `redact`. Zero runtime dependencies, including the JSON Schema validator.
+- `repro-agent` CLI with `init`, `build`, `task`, `adapters`, `validate`, `redact`. Zero runtime dependencies, including the JSON Schema validator.
 - Single-file offline HTML generator, bilingual, CSP-locked to no network, no storage APIs, no external resources.
 - Adapters for generic `AGENTS.md` and WorkBuddy / OpenClaw skill packages. Markdown only, no executable code.
 - Redaction engine that removes credentials, emails, home directories and public IPs while preserving error codes, stack frames, versions and private addresses.

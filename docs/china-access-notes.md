@@ -42,7 +42,7 @@ The protocol does not permit giving up. The agent continues on local evidence â€
 
 Nobody has yet run the `china` chain across a representative set of mainland carriers, provinces, agent hosts and models. Until someone has, this document is reasoning from vendor documentation, not measurement.
 
-If you are on such a network, a [field report](https://github.com/gufan0000/bugbridge/issues/new?template=field-report.yml) about which route actually worked is the single most useful thing you can contribute.
+If you are on such a network, a [field report](https://github.com/gufan0000/repro-agent/issues/new?template=field-report.yml) about which route actually worked is the single most useful thing you can contribute.
 
 ## Sources consulted
 

@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/gufan0000/bugbridge/main/spec/task.schema.json",
-  "title": "BugBridge Task",
+  "$id": "https://raw.githubusercontent.com/gufan0000/repro-agent/main/spec/task.schema.json",
+  "title": "Repro Agent Task",
   "description": "A self-contained diagnostic task handed to a local AI agent by an end user.",
   "type": "object",
   "required": ["protocol", "protocol_version", "language", "options", "project", "problem", "policy", "budget"],
   "additionalProperties": false,
   "properties": {
-    "protocol": { "const": "bugbridge/task" },
+    "protocol": { "const": "repro-agent/task" },
     "protocol_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
     "task_id": { "type": "string" },
     "created_at": { "type": "string" },

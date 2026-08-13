@@ -41,8 +41,8 @@ test('the page stores nothing on the machine beyond the file the user downloads'
 });
 
 test('the protocol text is embedded, not fetched', () => {
-  const start = html.indexOf('/* BUGBRIDGE:PROTOCOL:START */');
-  const end = html.indexOf('/* BUGBRIDGE:PROTOCOL:END */');
+  const start = html.indexOf('/* REPRO:PROTOCOL:START */');
+  const end = html.indexOf('/* REPRO:PROTOCOL:END */');
   assert.ok(start !== -1 && end > start, 'protocol markers missing');
   const block = html.slice(start, end);
   assert.match(block, /const PROTOCOL = \{/);
@@ -52,29 +52,29 @@ test('the protocol text is embedded, not fetched', () => {
   assert.ok(block.includes('zh-CN') && block.includes('"en"'), 'both languages must be embedded');
 });
 
-test('the profile markers are present so `bugbridge build` can prefill the page', () => {
-  const start = html.indexOf('/* BUGBRIDGE:PROFILE:START */');
-  const end = html.indexOf('/* BUGBRIDGE:PROFILE:END */');
+test('the profile markers are present so `repro-agent build` can prefill the page', () => {
+  const start = html.indexOf('/* REPRO:PROFILE:START */');
+  const end = html.indexOf('/* REPRO:PROFILE:END */');
   assert.ok(start !== -1 && end > start, 'profile markers missing');
   assert.match(html.slice(start, end), /const EMBEDDED =/);
 });
 
 test('the embedded protocol JSON is syntactically valid JavaScript', async () => {
   const block = html.slice(
-    html.indexOf('/* BUGBRIDGE:PROTOCOL:START */') + '/* BUGBRIDGE:PROTOCOL:START */'.length,
-    html.indexOf('/* BUGBRIDGE:PROTOCOL:END */'),
+    html.indexOf('/* REPRO:PROTOCOL:START */') + '/* REPRO:PROTOCOL:START */'.length,
+    html.indexOf('/* REPRO:PROTOCOL:END */'),
   );
   const { runInNewContext } = await import('node:vm');
   const protocol = runInNewContext(`${block}; PROTOCOL`);
-  assert.ok(protocol.en['00-header'].startsWith('# BugBridge'));
-  assert.ok(protocol['zh-CN']['00-header'].startsWith('# BugBridge'));
+  assert.ok(protocol.en['00-header'].startsWith('# Repro Agent'));
+  assert.ok(protocol['zh-CN']['00-header'].startsWith('# Repro Agent'));
 });
 
 test('the embedded protocol matches protocol/ on disk', async () => {
   const { PROTOCOL_FRAGMENTS } = await import('../dist/core/protocol-data.js');
   const block = html.slice(
-    html.indexOf('/* BUGBRIDGE:PROTOCOL:START */') + '/* BUGBRIDGE:PROTOCOL:START */'.length,
-    html.indexOf('/* BUGBRIDGE:PROTOCOL:END */'),
+    html.indexOf('/* REPRO:PROTOCOL:START */') + '/* REPRO:PROTOCOL:START */'.length,
+    html.indexOf('/* REPRO:PROTOCOL:END */'),
   );
   const { runInNewContext } = await import('node:vm');
   const embedded = runInNewContext(`${block}; PROTOCOL`);
@@ -92,14 +92,14 @@ test('the page is bilingual', () => {
 test('build-time profile embedding produces a page that still parses', async () => {
   const { embedProfile } = await import('../dist/commands/build.js');
   const profile = {
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: '1.0',
     project: { name: 'Demo </script> <b>', repository: 'https://github.com/o/r' },
   };
   const built = embedProfile(html, profile, { language: 'zh-CN', region: 'china', autonomy: 'guided' });
   // A `</script>` inside the payload would end the script tag early and break the page.
-  const start = built.indexOf('/* BUGBRIDGE:PROFILE:START */') + '/* BUGBRIDGE:PROFILE:START */'.length;
-  const block = built.slice(start, built.indexOf('/* BUGBRIDGE:PROFILE:END */'));
+  const start = built.indexOf('/* REPRO:PROFILE:START */') + '/* REPRO:PROFILE:START */'.length;
+  const block = built.slice(start, built.indexOf('/* REPRO:PROFILE:END */'));
   assert.ok(!block.includes('</script>'), 'raw </script> leaked into the embedded payload');
   const { runInNewContext } = await import('node:vm');
   const embedded = runInNewContext(`${block}; EMBEDDED`);

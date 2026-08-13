@@ -2,8 +2,8 @@
 /* eslint-disable */
 export const TASK_SCHEMA: Record<string, any> = {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/gufan0000/bugbridge/main/spec/task.schema.json",
-  "title": "BugBridge Task",
+  "$id": "https://raw.githubusercontent.com/gufan0000/repro-agent/main/spec/task.schema.json",
+  "title": "Repro Agent Task",
   "description": "A self-contained diagnostic task handed to a local AI agent by an end user.",
   "type": "object",
   "required": [
@@ -19,7 +19,7 @@ export const TASK_SCHEMA: Record<string, any> = {
   "additionalProperties": false,
   "properties": {
     "protocol": {
-      "const": "bugbridge/task"
+      "const": "repro-agent/task"
     },
     "protocol_version": {
       "type": "string",
@@ -525,9 +525,9 @@ export const TASK_SCHEMA: Record<string, any> = {
 
 export const PROJECT_SCHEMA: Record<string, any> = {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/gufan0000/bugbridge/main/spec/project.schema.json",
-  "title": "BugBridge Project Profile",
-  "description": "Committed by a maintainer to their own repository as .bugbridge/project.json. It teaches any AI agent how to diagnose this specific piece of software on an end user's machine, and how to report back when it cannot.",
+  "$id": "https://raw.githubusercontent.com/gufan0000/repro-agent/main/spec/project.schema.json",
+  "title": "Repro Agent Project Profile",
+  "description": "Committed by a maintainer to their own repository as .repro/project.json. It teaches any AI agent how to diagnose this specific piece of software on an end user's machine, and how to report back when it cannot.",
   "type": "object",
   "required": [
     "protocol",
@@ -537,7 +537,7 @@ export const PROJECT_SCHEMA: Record<string, any> = {
   "additionalProperties": false,
   "properties": {
     "protocol": {
-      "const": "bugbridge/project"
+      "const": "repro-agent/project"
     },
     "protocol_version": {
       "type": "string",
@@ -753,7 +753,7 @@ export const PROJECT_SCHEMA: Record<string, any> = {
     },
     "policy_overrides": {
       "type": "object",
-      "description": "A maintainer may only make the policy STRICTER. Attempts to loosen a 'deny' constant are rejected by `bugbridge validate`.",
+      "description": "A maintainer may only make the policy STRICTER. Attempts to loosen a 'deny' constant are rejected by `repro-agent validate`.",
       "additionalProperties": false,
       "properties": {
         "no_full_repository_download": {

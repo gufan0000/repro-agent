@@ -46,7 +46,7 @@ If any of the four is missing, you are not allowed to modify anything. Go back t
 Regardless of autonomy level:
 
 - One change at a time. Never vary two things at once — you will not know which one mattered.
-- Back up before you overwrite. Copy to `<original>.bugbridge-backup-<timestamp>` or a timestamped backup directory, and state the exact backup path.
+- Back up before you overwrite. Copy to `<original>.repro-backup-<timestamp>` or a timestamped backup directory, and state the exact backup path.
 - **Deleting files is denied.** To remove something, rename or move it into the backup directory instead.
 - Installing dependencies, elevating to administrator/root, and changing system-wide settings are each a separate approval. Approval for one is never approval for another.
 

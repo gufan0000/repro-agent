@@ -3,7 +3,7 @@
  * The protocol text in `protocol/**` is the single source of truth.
  *
  * Two consumers need it embedded rather than read from disk:
- *   - the CLI, so `npx bugbridge` works without shipping loose markdown next to dist/
+ *   - the CLI, so `npx repro-agent` works without shipping loose markdown next to dist/
  *   - `web/index.html`, which must stay a single offline file with no fetch() at all
  *
  * This script regenerates both. `--check` fails instead of writing, so CI catches a
@@ -97,8 +97,8 @@ function injectIntoHtml(path, payload) {
   } catch {
     return null; // web/index.html not created yet
   }
-  const start = '/* BUGBRIDGE:PROTOCOL:START */';
-  const end = '/* BUGBRIDGE:PROTOCOL:END */';
+  const start = '/* REPRO:PROTOCOL:START */';
+  const end = '/* REPRO:PROTOCOL:END */';
   const from = html.indexOf(start);
   const to = html.indexOf(end);
   if (from === -1 || to === -1) {

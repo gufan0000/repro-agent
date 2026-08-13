@@ -1,5 +1,5 @@
 name: Field report
-description: You ran BugBridge on a real problem. Tell us what the agent actually did.
+description: You ran Repro Agent on a real problem. Tell us what the agent actually did.
 title: "[field report] "
 labels: ["field-report"]
 body:

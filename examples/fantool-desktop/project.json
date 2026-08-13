@@ -1,5 +1,5 @@
 {
-  "protocol": "bugbridge/project",
+  "protocol": "repro-agent/project",
   "protocol_version": "1.0",
   "project": {
     "name": "FanTool",

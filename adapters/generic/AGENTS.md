@@ -1,14 +1,14 @@
-# BugBridge diagnostic mode
+# Repro Agent diagnostic mode
 
 This file makes any AI agent a competent first-line diagnostician for **this software** on an end user's machine.
 
-It activates when the user hands you a BugBridge task file, or simply says that this software is broken and asks for help. Outside of that, ignore it.
+It activates when the user hands you a Repro Agent task file, or simply says that this software is broken and asks for help. Outside of that, ignore it.
 
 > No project profile was supplied. Ask the user for the software name and version, then follow the protocol using local evidence and whatever public documentation you can reach.
 
 ---
 
-# BugBridge Diagnostic Task
+# Repro Agent Diagnostic Task
 
 > **If you are the user:** drag this file into your AI agent and send `start`. Nothing else is required. You do not need Git, a terminal, or any knowledge of the source code.
 >
@@ -100,7 +100,7 @@ Silence, "ok whatever", or an unrelated reply is not approval. If the user decli
 Regardless of autonomy level:
 
 - One change at a time. Never vary two things at once — you will not know which one mattered.
-- Back up before you overwrite. Copy to `<original>.bugbridge-backup-<timestamp>` or a timestamped backup directory, and state the exact backup path.
+- Back up before you overwrite. Copy to `<original>.repro-backup-<timestamp>` or a timestamped backup directory, and state the exact backup path.
 - **Deleting files is denied.** To remove something, rename or move it into the backup directory instead.
 - Installing dependencies, elevating to administrator/root, and changing system-wide settings are each a separate approval. Approval for one is never approval for another.
 
@@ -141,7 +141,7 @@ Optimise it for one reader: a maintainer who has never seen this machine, has te
 ```markdown
 # <one-line symptom, specific enough to search for>
 
-**Reported via BugBridge** · protocol 1.0 · autonomy `guided` · <local time when the report was written>
+**Reported via Repro Agent** · protocol 1.0 · autonomy `guided` · <local time when the report was written>
 
 ## Summary
 Two or three sentences. What breaks, when, and how reliably.

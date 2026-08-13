@@ -7,26 +7,26 @@ import { cmdRedact } from './commands/redact.js';
 import { cmdAdapters } from './commands/adapters.js';
 import { PROTOCOL_VERSION } from './core/types.js';
 
-const USAGE = `bugbridge — turn "it doesn't work" into a fix, or a bug report a maintainer can act on
+const USAGE = `repro-agent — turn "it doesn't work" into a fix, or a bug report a maintainer can act on
 
 Usage
-  bugbridge init [--dir .] [--name <project>] [--repo <url>] [--force]
-      Create .bugbridge/project.json in your repository. Run this once, as a maintainer.
+  repro-agent init [--dir .] [--name <project>] [--repo <url>] [--force]
+      Create .repro/project.json in your repository. Run this once, as a maintainer.
 
-  bugbridge validate <file...>
+  repro-agent validate <file...>
       Validate a project profile, a task JSON, or a task markdown file.
 
-  bugbridge task --profile <file> --summary "<what broke>" [options] [-o FILE]
+  repro-agent task --profile <file> --summary "<what broke>" [options] [-o FILE]
       Build a diagnostic task file for a user to hand to their agent.
 
-  bugbridge build [--profile <file>] [--out dist-support] [--lang en|zh-CN]
+  repro-agent build [--profile <file>] [--out dist-support] [--lang en|zh-CN]
       Produce a shippable support kit: a single offline HTML page with your project
       pre-filled, plus the agent adapters. Attach it to a release or host it on Pages.
 
-  bugbridge adapters <generic|workbuddy|all> [--out .] [--lang en|zh-CN] [options]
+  repro-agent adapters <generic|workbuddy|all> [--out .] [--lang en|zh-CN] [options]
       Write agent adapter files (AGENTS.md, WorkBuddy skill) for your project.
 
-  bugbridge redact <file> [-o FILE] [--literal <string>]...
+  repro-agent redact <file> [-o FILE] [--literal <string>]...
       Strip secrets, tokens, emails, home directories and public IPs from a file.
 
 Task options (also accepted by build/adapters where relevant)
@@ -40,7 +40,7 @@ Task options (also accepted by build/adapters where relevant)
   --os Windows|macOS|Linux, --expected, --observed, --step <text> (repeatable),
   --log-path, --config-path, --process, --service (all repeatable)
 
-Protocol version ${PROTOCOL_VERSION} · https://github.com/gufan0000/bugbridge
+Protocol version ${PROTOCOL_VERSION} · https://github.com/gufan0000/repro-agent
 `;
 
 export interface Args {
@@ -77,7 +77,7 @@ async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0];
 
-  // `--version` only means "print the version" with no subcommand; `bugbridge task --version 1.4.0`
+  // `--version` only means "print the version" with no subcommand; `repro-agent task --version 1.4.0`
   // is the version of the *user's* software, which is a far more common thing to type.
   if (!command && (args.flags['version'] || args.flags['v'])) {
     process.stdout.write(`${PROTOCOL_VERSION}\n`);

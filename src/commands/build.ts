@@ -6,8 +6,8 @@ import { renderAgentsMd, renderWorkbuddySkill } from './adapters.js';
 import { str, pick, loadProfile, LANGUAGES, REGIONS, AUTONOMIES } from './shared.js';
 import type { ProjectProfile } from '../core/types.js';
 
-const PROFILE_START = '/* BUGBRIDGE:PROFILE:START */';
-const PROFILE_END = '/* BUGBRIDGE:PROFILE:END */';
+const PROFILE_START = '/* REPRO:PROFILE:START */';
+const PROFILE_END = '/* REPRO:PROFILE:END */';
 
 /**
  * Embed the maintainer's profile directly into the offline page.
@@ -24,7 +24,7 @@ export function embedProfile(html: string, profile: ProjectProfile | undefined, 
   const start = html.indexOf(PROFILE_START);
   const end = html.indexOf(PROFILE_END);
   if (start === -1 || end === -1) {
-    throw new Error('web/index.html is missing the BUGBRIDGE:PROFILE markers');
+    throw new Error('web/index.html is missing the REPRO:PROFILE markers');
   }
   const payload = JSON.stringify({ profile: profile ?? null, defaults }).replace(
     /[<\u2028\u2029]/g,
@@ -34,14 +34,14 @@ export function embedProfile(html: string, profile: ProjectProfile | undefined, 
 }
 
 export function cmdBuild(args: Args): number {
-  const profilePath = str(args, 'profile') || '.bugbridge/project.json';
+  const profilePath = str(args, 'profile') || '.repro/project.json';
   let profile: ProjectProfile | undefined;
   try {
     profile = loadProfile(profilePath);
   } catch (error) {
     if (args.flags['profile']) throw error;
     process.stderr.write(
-      `note: no profile at ${profilePath}; building a generic kit. Run \`bugbridge init\` first for a project-specific one.\n`,
+      `note: no profile at ${profilePath}; building a generic kit. Run \`repro-agent init\` first for a project-specific one.\n`,
     );
   }
 
@@ -49,26 +49,26 @@ export function cmdBuild(args: Args): number {
   const region = pick(args, 'region', REGIONS, profile?.defaults?.region ?? 'global');
   const autonomy = pick(args, 'autonomy', AUTONOMIES, profile?.defaults?.autonomy ?? 'guided');
 
-  const outDir = resolve(str(args, 'out', 'bugbridge-support'));
+  const outDir = resolve(str(args, 'out', 'repro-support'));
   mkdirSync(outDir, { recursive: true });
 
   const html = readFileSync(assetPath('web', 'index.html'), 'utf8');
   const built = embedProfile(html, profile, { language, region, autonomy });
-  const htmlName = profile ? `${slug(profile.project.name)}-support.html` : 'bugbridge-support.html';
+  const htmlName = profile ? `${slug(profile.project.name)}-support.html` : 'repro-support.html';
   writeFileSync(join(outDir, htmlName), built, 'utf8');
 
   const context = { language, region, autonomy, profile };
-  writeFileSync(join(outDir, 'BUGBRIDGE_AGENTS.md'), renderAgentsMd(context), 'utf8');
-  mkdirSync(join(outDir, 'bugbridge-doctor'), { recursive: true });
-  writeFileSync(join(outDir, 'bugbridge-doctor', 'SKILL.md'), renderWorkbuddySkill(context), 'utf8');
+  writeFileSync(join(outDir, 'REPRO_AGENTS.md'), renderAgentsMd(context), 'utf8');
+  mkdirSync(join(outDir, 'repro-agent'), { recursive: true });
+  writeFileSync(join(outDir, 'repro-agent', 'SKILL.md'), renderWorkbuddySkill(context), 'utf8');
   writeFileSync(join(outDir, 'README.md'), kitReadme(htmlName, language, profile), 'utf8');
 
   process.stdout.write(
     [
       `Built support kit in ${outDir}`,
       `  ${htmlName}                — give this to users; opens offline, no install`,
-      `  BUGBRIDGE_AGENTS.md        — drop into a repo as AGENTS.md, or hand to any agent`,
-      `  bugbridge-doctor/SKILL.md  — WorkBuddy / OpenClaw skill package (pure markdown)`,
+      `  REPRO_AGENTS.md        — drop into a repo as AGENTS.md, or hand to any agent`,
+      `  repro-agent/SKILL.md  — WorkBuddy / OpenClaw skill package (pure markdown)`,
       `  README.md                  — what to tell your users`,
       '',
       'Attach the HTML file to a GitHub release, or publish the folder with GitHub Pages.',
@@ -97,9 +97,9 @@ function kitReadme(htmlName: string, language: string, profile: ProjectProfile |
       '',
       '## 给维护者',
       '',
-      '- `BUGBRIDGE_AGENTS.md`：放进仓库当 `AGENTS.md`，或直接发给用户的 agent。',
-      '- `bugbridge-doctor/SKILL.md`：WorkBuddy / OpenClaw 技能包，纯 Markdown，无脚本无依赖。',
-      '- 重新生成：`npx bugbridge build --profile .bugbridge/project.json`',
+      '- `REPRO_AGENTS.md`：放进仓库当 `AGENTS.md`，或直接发给用户的 agent。',
+      '- `repro-agent/SKILL.md`：WorkBuddy / OpenClaw 技能包，纯 Markdown，无脚本无依赖。',
+      '- 重新生成：`npx repro-agent build --profile .repro/project.json`',
       '',
     ].join('\n');
   }
@@ -115,9 +115,9 @@ function kitReadme(htmlName: string, language: string, profile: ProjectProfile |
     '',
     '## For maintainers',
     '',
-    '- `BUGBRIDGE_AGENTS.md` — commit as `AGENTS.md`, or hand directly to a user\'s agent.',
-    '- `bugbridge-doctor/SKILL.md` — WorkBuddy / OpenClaw skill package. Pure markdown, no scripts, no dependencies.',
-    '- Rebuild with `npx bugbridge build --profile .bugbridge/project.json`.',
+    '- `REPRO_AGENTS.md` — commit as `AGENTS.md`, or hand directly to a user\'s agent.',
+    '- `repro-agent/SKILL.md` — WorkBuddy / OpenClaw skill package. Pure markdown, no scripts, no dependencies.',
+    '- Rebuild with `npx repro-agent build --profile .repro/project.json`.',
     '',
   ].join('\n');
 }

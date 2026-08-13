@@ -88,7 +88,7 @@ test('read_only_first cannot be turned off', () => {
 
 test('project profiles validate and reject junk', () => {
   const profile = {
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: '1.0',
     project: { name: 'Demo' },
   };
@@ -99,7 +99,7 @@ test('project profiles validate and reject junk', () => {
 
 test('the validator handles $ref, nested objects and array items', () => {
   const profile = {
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: '1.0',
     project: { name: 'Demo' },
     local_targets: { windows: { ports: [8080], log_paths: ['%APPDATA%\\Demo'] } },

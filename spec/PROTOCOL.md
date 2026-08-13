@@ -1,4 +1,4 @@
-# The BugBridge protocol, version 1.0
+# The Repro Agent protocol, version 1.0
 
 This document specifies the data contract and explains the reasoning behind it. The agent-facing instruction text itself is in [`protocol/en/`](../protocol/en/) and [`protocol/zh-CN/`](../protocol/zh-CN/) — that text is the normative source, and everything else in this repository is generated from it.
 
@@ -6,7 +6,7 @@ This document specifies the data contract and explains the reasoning behind it. 
 
 | Role | Where they are | What they produce |
 |---|---|---|
-| **Maintainer** | Their own repository | `.bugbridge/project.json` — a project profile |
+| **Maintainer** | Their own repository | `.repro/project.json` — a project profile |
 | **User** | The broken machine | A task file, from the offline page or the CLI |
 | **Agent** | The broken machine | A fix, or `BUG_REPORT.md` |
 
@@ -14,7 +14,7 @@ The maintainer is optional. A user with no profile can still generate a task; th
 
 ## 2. Artifacts
 
-### Project profile — `bugbridge/project`
+### Project profile — `repro-agent/project`
 
 Committed to the maintainer's repository. Schema: [`project.schema.json`](project.schema.json).
 
@@ -22,7 +22,7 @@ Carries: where the software lives on each OS, what already breaks, what must nev
 
 `local_targets` is keyed by OS (`windows` / `macos` / `linux` / `any`) so one profile covers every platform. Only the entries matching the user's actual OS are merged into a task — a Windows user never receives macOS paths to go looking for.
 
-### Task — `bugbridge/task`
+### Task — `repro-agent/task`
 
 Produced by the user, consumed by the agent. Schema: [`task.schema.json`](task.schema.json).
 
@@ -95,7 +95,7 @@ allow_read_or_upload_secrets        deny
 allow_modify_unrelated_software     deny
 ```
 
-Plus `read_only_first: true`. A task that changes any of these fails `bugbridge validate`.
+Plus `read_only_first: true`. A task that changes any of these fails `repro-agent validate`.
 
 The remaining four (`allow_modify_target_app_files`, `allow_install_dependencies`, `allow_admin_privileges`, `allow_run_repository_scripts`) are derived from `autonomy`. A maintainer profile may override them, but `buildTask` only applies an override that makes the policy **stricter** — a profile cannot hand an agent more authority over its users' machines than the user selected.
 

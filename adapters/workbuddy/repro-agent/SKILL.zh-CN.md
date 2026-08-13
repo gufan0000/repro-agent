@@ -1,20 +1,20 @@
 ---
-name: bugbridge-doctor
+name: repro-agent
 description: 诊断本机上 the target software 的问题，能安全修复就修复，修不好则产出一份维护者可以直接处理的 bug 报告。当用户反馈 the target software 无法使用、崩溃或行为异常时使用。
 version: 1.0
 license: MIT
 ---
-# BugBridge Doctor
+# Repro Agent Doctor
 
 本文件让任意 AI 助手成为用户电脑上 **the target software** 的一线诊断专家。
 
-当用户递来 BugBridge 任务文件，或者直接说 the target software 出问题了求助时，启用本文件。其他情况下忽略它。
+当用户递来 Repro Agent 任务文件，或者直接说 the target software 出问题了求助时，启用本文件。其他情况下忽略它。
 
 > 未提供项目档案。请向用户询问软件名称和版本，然后依据本机证据和可访问的公开文档，按协议执行。
 
 ---
 
-# BugBridge 诊断任务
+# Repro Agent 诊断任务
 
 > **如果你是用户：** 把这个文件拖进你的 AI 助手，发送 `开始`。不需要做任何其他事，不需要懂 Git、命令行或源码。
 >
@@ -108,7 +108,7 @@ license: MIT
 无论哪种自主级别都适用：
 
 - 一次只改一处。绝不同时变更两个变量 —— 那样你无法判断是哪个起了作用。
-- 覆盖前先备份。复制为 `<原文件>.bugbridge-backup-<时间戳>`，或放进带时间戳的备份目录，并明确说出备份路径。
+- 覆盖前先备份。复制为 `<原文件>.repro-backup-<时间戳>`，或放进带时间戳的备份目录，并明确说出备份路径。
 - **禁止删除文件。** 需要移除时，改用重命名或移入备份目录。
 - 安装依赖、提升到管理员/root、修改系统级设置，每一项都需要单独批准。批准了其中一项不等于批准了另一项。
 
@@ -149,7 +149,7 @@ license: MIT
 ```markdown
 # <一句话症状，具体到可以被搜索到>
 
-**由 BugBridge 生成** · 协议 1.0 · 自主级别 `guided` · <local time when the report was written>
+**由 Repro Agent 生成** · 协议 1.0 · 自主级别 `guided` · <local time when the report was written>
 
 ## 摘要
 两三句话。什么坏了、什么时候坏、多大概率坏。

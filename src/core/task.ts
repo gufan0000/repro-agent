@@ -124,7 +124,7 @@ export function buildTask(input: TaskInput): Task {
   }
 
   const task: Task = {
-    protocol: 'bugbridge/task',
+    protocol: 'repro-agent/task',
     protocol_version: PROTOCOL_VERSION,
     task_id: input.taskId ?? randomUUID(),
     created_at: input.createdAt ?? new Date().toISOString(),
@@ -198,5 +198,5 @@ export function validateProjectProfile(data: unknown): SchemaError[] {
 
 export function assertValidTask(data: unknown): asserts data is Task {
   const errors = validateTask(data);
-  if (errors.length) throw new Error(`invalid BugBridge task:\n${formatErrors(errors)}`);
+  if (errors.length) throw new Error(`invalid Repro Agent task:\n${formatErrors(errors)}`);
 }

@@ -2,11 +2,11 @@
 
 ## Threat model
 
-BugBridge produces instructions that cause an AI agent to inspect, and sometimes modify, a non-technical person's computer. The interesting attacks are therefore:
+Repro Agent produces instructions that cause an AI agent to inspect, and sometimes modify, a non-technical person's computer. The interesting attacks are therefore:
 
 1. **Prompt injection via fetched content.** The agent reads a repository, a web page, a log line or a filename that contains instructions aimed at it. Mitigation: [protocol section 1](protocol/en/10-authority.md) declares all fetched content to be evidence rather than instruction, and ranks itself above every other document the agent reads.
-2. **Policy laundering.** A task file, or a maintainer profile, that quietly relaxes a safety boundary. Mitigation: the five hard denials are `const` in `spec/task.schema.json`, and `bugbridge validate` rejects any task that changes them. `buildTask` only ever lets a maintainer profile make the policy stricter.
-3. **Data exfiltration through the bug report.** The report is intended to be posted publicly. Mitigation: the protocol's redaction section, plus `bugbridge redact` and the rules in `src/core/redact.ts`.
+2. **Policy laundering.** A task file, or a maintainer profile, that quietly relaxes a safety boundary. Mitigation: the five hard denials are `const` in `spec/task.schema.json`, and `repro-agent validate` rejects any task that changes them. `buildTask` only ever lets a maintainer profile make the policy stricter.
+3. **Data exfiltration through the bug report.** The report is intended to be posted publicly. Mitigation: the protocol's redaction section, plus `repro-agent redact` and the rules in `src/core/redact.ts`.
 4. **Supply chain via the skill package.** Mitigation: adapters emit markdown only, asserted by a test.
 5. **The offline page itself.** Mitigation: CSP with `default-src 'none'` and `connect-src 'none'`, no external resources, no storage APIs — all asserted in `test/offline.test.js`.
 
@@ -21,11 +21,11 @@ BugBridge produces instructions that cause an AI agent to inspect, and sometimes
 Please **do not** open a public issue for:
 
 - a prompt-injection phrasing that defeats section 1 of the protocol
-- a way to make `bugbridge validate` accept a task with a relaxed denial
+- a way to make `repro-agent validate` accept a task with a relaxed denial
 - a redaction bypass that leaks a common credential format
 - anything that makes the offline page issue a network request
 
-Email **gufan0000@gmail.com** with `[bugbridge security]` in the subject, or use GitHub's private vulnerability reporting on this repository. Include a minimal reproduction. You should get a reply within 7 days.
+Email **gufan0000@gmail.com** with `[repro-agent security]` in the subject, or use GitHub's private vulnerability reporting on this repository. Include a minimal reproduction. You should get a reply within 7 days.
 
 Injection phrasings that the protocol *already* handles correctly are very welcome as public issues — they make good regression tests.
 

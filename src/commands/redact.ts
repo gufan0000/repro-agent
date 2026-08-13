@@ -6,7 +6,7 @@ import { str } from './shared.js';
 export function cmdRedact(args: Args): number {
   const file = args._[1];
   if (!file) {
-    process.stderr.write('usage: bugbridge redact <file> [-o FILE] [--literal <string>]...\n');
+    process.stderr.write('usage: repro-agent redact <file> [-o FILE] [--literal <string>]...\n');
     return 1;
   }
 

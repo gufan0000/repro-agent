@@ -12,7 +12,7 @@ import { PROTOCOL_VERSION, type ProjectProfile } from '../core/types.js';
  */
 export function cmdInit(args: Args): number {
   const dir = resolve(str(args, 'dir', '.'));
-  const target = join(dir, '.bugbridge', 'project.json');
+  const target = join(dir, '.repro', 'project.json');
 
   if (existsSync(target) && !args.flags['force']) {
     process.stderr.write(`${target} already exists. Pass --force to overwrite.\n`);
@@ -24,7 +24,7 @@ export function cmdInit(args: Args): number {
   const region = pick(args, 'region', REGIONS, 'global');
 
   const profile: ProjectProfile = {
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: PROTOCOL_VERSION,
     project: {
       name,
@@ -93,7 +93,7 @@ export function cmdInit(args: Args): number {
     },
   };
 
-  mkdirSync(join(dir, '.bugbridge'), { recursive: true });
+  mkdirSync(join(dir, '.repro'), { recursive: true });
   writeFileSync(target, `${JSON.stringify(profile, null, 2)}\n`);
 
   process.stdout.write(
@@ -103,8 +103,8 @@ export function cmdInit(args: Args): number {
       'Next:',
       '  1. Replace every <APP> placeholder and the example known_issues entry with real values.',
       '     The known_issues list is what makes an agent expert on your project instead of generic.',
-      '  2. bugbridge validate .bugbridge/project.json',
-      '  3. bugbridge build --profile .bugbridge/project.json',
+      '  2. repro-agent validate .repro/project.json',
+      '  3. repro-agent build --profile .repro/project.json',
       '     -> a single offline HTML page to attach to your releases, plus agent adapters.',
       '  4. Link it from your README and SUPPORT.md.',
       '',

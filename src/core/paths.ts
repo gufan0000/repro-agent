@@ -15,7 +15,7 @@ export function packageRoot(): string {
     if (parent === dir) break;
     dir = parent;
   }
-  throw new Error('could not locate the bugbridge package root');
+  throw new Error('could not locate the repro-agent package root');
 }
 
 export function assetPath(...parts: string[]): string {

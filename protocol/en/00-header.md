@@ -1,4 +1,4 @@
-# BugBridge Diagnostic Task
+# Repro Agent Diagnostic Task
 
 > **If you are the user:** drag this file into your AI agent and send `start`. Nothing else is required. You do not need Git, a terminal, or any knowledge of the source code.
 >

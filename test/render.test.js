@@ -73,8 +73,8 @@ test('a rendered task carries a task JSON block that parses and validates', () =
 test('the header appears once, at the top, and is not duplicated by the body', () => {
   const task = buildTask({ project: { name: 'Demo' }, problem: { summary: 'x' } });
   const markdown = renderTask(task);
-  assert.ok(markdown.startsWith('# BugBridge Diagnostic Task'));
-  assert.equal(markdown.split('# BugBridge Diagnostic Task').length - 1, 1);
+  assert.ok(markdown.startsWith('# Repro Agent Diagnostic Task'));
+  assert.equal(markdown.split('# Repro Agent Diagnostic Task').length - 1, 1);
 });
 
 test('sections appear in protocol order', () => {
@@ -109,5 +109,5 @@ test('both languages ship every fragment the renderer needs', () => {
 
 test('an unknown language falls back to English rather than throwing', () => {
   const body = renderProtocol({ language: 'de', region: 'global', autonomy: 'guided' });
-  assert.match(body, /# BugBridge Diagnostic Task/);
+  assert.match(body, /# Repro Agent Diagnostic Task/);
 });

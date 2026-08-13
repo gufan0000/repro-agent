@@ -24,7 +24,7 @@ for (const { language, suffix } of variants) {
   mkdirSync(join(root, 'adapters', 'generic'), { recursive: true });
   writeFileSync(join(root, 'adapters', 'generic', `AGENTS${suffix}.md`), renderAgentsMd(context), 'utf8');
 
-  const skillDir = join(root, 'adapters', 'workbuddy', 'bugbridge-doctor');
+  const skillDir = join(root, 'adapters', 'workbuddy', 'repro-agent');
   mkdirSync(skillDir, { recursive: true });
   writeFileSync(join(skillDir, `SKILL${suffix}.md`), renderWorkbuddySkill(context), 'utf8');
 }

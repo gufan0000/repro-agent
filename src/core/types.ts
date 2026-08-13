@@ -55,7 +55,7 @@ export interface Policy {
 }
 
 export interface Task {
-  protocol: 'bugbridge/task';
+  protocol: 'repro-agent/task';
   protocol_version: string;
   task_id?: string;
   created_at?: string;
@@ -115,7 +115,7 @@ export interface Task {
 }
 
 export interface ProjectProfile {
-  protocol: 'bugbridge/project';
+  protocol: 'repro-agent/project';
   protocol_version: string;
   project: {
     name: string;

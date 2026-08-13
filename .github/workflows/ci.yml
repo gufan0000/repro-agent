@@ -62,11 +62,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: node dist/index.js validate .bugbridge/project.json
+      - run: node dist/index.js validate .repro/project.json
       - run: node dist/index.js validate examples/*/project.json
       - name: end-to-end kit build
         run: |
-          node dist/index.js build --profile .bugbridge/project.json --out /tmp/kit
-          test -f /tmp/kit/bugbridge-cli-support.html
-          node dist/index.js task --profile .bugbridge/project.json --summary "smoke test" -o /tmp/task.md
+          node dist/index.js build --profile .repro/project.json --out /tmp/kit
+          test -f /tmp/kit/repro-agent-cli-support.html
+          node dist/index.js task --profile .repro/project.json --summary "smoke test" -o /tmp/task.md
           node dist/index.js validate /tmp/task.md

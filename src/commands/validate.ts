@@ -7,7 +7,7 @@ import { extractTaskJson } from './shared.js';
 export function cmdValidate(args: Args): number {
   const files = args._.slice(1);
   if (files.length === 0) {
-    process.stderr.write('usage: bugbridge validate <file...>\n');
+    process.stderr.write('usage: repro-agent validate <file...>\n');
     return 1;
   }
 
@@ -25,9 +25,9 @@ export function cmdValidate(args: Args): number {
 
     const kind = (data as { protocol?: string } | null)?.protocol;
     let errors;
-    if (kind === 'bugbridge/project') {
+    if (kind === 'repro-agent/project') {
       errors = validateProjectProfile(data);
-    } else if (kind === 'bugbridge/task') {
+    } else if (kind === 'repro-agent/task') {
       errors = validateTask(data);
     } else {
       process.stderr.write(`✗ ${file}: missing or unknown "protocol" field (${String(kind)})\n`);

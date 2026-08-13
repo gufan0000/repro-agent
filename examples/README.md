@@ -17,7 +17,7 @@ It is worth reading for four things a good profile does:
 ### Try it
 
 ```bash
-npx bugbridge task --profile examples/fantool-desktop/project.json \
+npx repro-agent task --profile examples/fantool-desktop/project.json \
   --summary "点导入没反应" --os Windows --version 1.3.2 -o TASK.md
 ```
 

@@ -18,15 +18,15 @@ function run(args, options = {}) {
 }
 
 function sandbox() {
-  const dir = mkdtempSync(join(tmpdir(), 'bugbridge-'));
+  const dir = mkdtempSync(join(tmpdir(), 'repro-agent-'));
   test.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
 
 test('help is printed when invoked with no arguments', () => {
   const out = run([]);
-  assert.match(out, /bugbridge init/);
-  assert.match(out, /bugbridge build/);
+  assert.match(out, /repro-agent init/);
+  assert.match(out, /repro-agent build/);
 });
 
 test('an unknown command fails loudly', () => {
@@ -36,7 +36,7 @@ test('an unknown command fails loudly', () => {
 test('init writes a profile that validates', () => {
   const dir = sandbox();
   run(['init', '--dir', dir, '--name', 'FanTool', '--repo', 'https://github.com/gufan0000/fantool']);
-  const path = join(dir, '.bugbridge', 'project.json');
+  const path = join(dir, '.repro', 'project.json');
   assert.ok(existsSync(path));
   const profile = JSON.parse(readFileSync(path, 'utf8'));
   assert.equal(profile.project.name, 'FanTool');
@@ -49,7 +49,7 @@ test('init refuses to clobber an existing profile without --force', () => {
   run(['init', '--dir', dir, '--name', 'A']);
   assert.throws(() => run(['init', '--dir', dir, '--name', 'B']), /Command failed/);
   run(['init', '--dir', dir, '--name', 'B', '--force']);
-  assert.equal(JSON.parse(readFileSync(join(dir, '.bugbridge', 'project.json'), 'utf8')).project.name, 'B');
+  assert.equal(JSON.parse(readFileSync(join(dir, '.repro', 'project.json'), 'utf8')).project.name, 'B');
 });
 
 test('task requires a summary', () => {
@@ -62,7 +62,7 @@ test('task renders a file that validates and round-trips', () => {
   run(['task', '--name', 'FanTool', '--summary', 'Import does nothing', '--os', 'Windows',
     '--version', '1.4.0', '--step', 'open app', '--step', 'click import', '-o', out]);
   const markdown = readFileSync(out, 'utf8');
-  assert.match(markdown, /# BugBridge Diagnostic Task/);
+  assert.match(markdown, /# Repro Agent Diagnostic Task/);
   const task = JSON.parse(markdown.match(/```json\n([\s\S]*?)\n```/)[1]);
   assert.equal(task.project.version, '1.4.0');
   assert.deepEqual(task.problem.reproduction_steps, ['open app', 'click import']);
@@ -88,7 +88,7 @@ test('a maintainer profile feeds project knowledge into the task', () => {
   const dir = sandbox();
   const profile = join(dir, 'profile.json');
   writeFileSync(profile, JSON.stringify({
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: '1.0',
     project: { name: 'FanTool', repository: 'https://github.com/o/r' },
     defaults: { language: 'zh-CN', region: 'china', autonomy: 'readonly' },
@@ -116,7 +116,7 @@ test('a maintainer profile can tighten the policy but never loosen it', () => {
   const dir = sandbox();
   const profile = join(dir, 'profile.json');
   writeFileSync(profile, JSON.stringify({
-    protocol: 'bugbridge/project',
+    protocol: 'repro-agent/project',
     protocol_version: '1.0',
     project: { name: 'Locked' },
     policy_overrides: { allow_modify_target_app_files: 'deny', allow_install_dependencies: 'deny' },
@@ -132,7 +132,7 @@ test('a maintainer profile can tighten the policy but never loosen it', () => {
 test('validate reports a malformed profile instead of accepting it', () => {
   const dir = sandbox();
   const bad = join(dir, 'bad.json');
-  writeFileSync(bad, JSON.stringify({ protocol: 'bugbridge/project', protocol_version: '1.0', project: {} }));
+  writeFileSync(bad, JSON.stringify({ protocol: 'repro-agent/project', protocol_version: '1.0', project: {} }));
   assert.throws(() => run(['validate', bad]), (error) => {
     assert.match(error.stderr, /project\.name: is required/);
     return true;
@@ -143,7 +143,7 @@ test('build produces an offline page plus both adapters', () => {
   const dir = sandbox();
   run(['init', '--dir', dir, '--name', 'Fan Tool', '--repo', 'https://github.com/o/r']);
   const outDir = join(dir, 'kit');
-  run(['build', '--profile', join(dir, '.bugbridge', 'project.json'), '--out', outDir]);
+  run(['build', '--profile', join(dir, '.repro', 'project.json'), '--out', outDir]);
 
   const page = join(outDir, 'fan-tool-support.html');
   assert.ok(existsSync(page));
@@ -151,13 +151,13 @@ test('build produces an offline page plus both adapters', () => {
   assert.match(html, /"name": ?"Fan Tool"|"name":"Fan Tool"/);
   assert.ok(!html.includes('fetch('), 'the built page must stay offline');
 
-  const agents = readFileSync(join(outDir, 'BUGBRIDGE_AGENTS.md'), 'utf8');
-  assert.match(agents, /BugBridge diagnostic mode/);
+  const agents = readFileSync(join(outDir, 'REPRO_AGENTS.md'), 'utf8');
+  assert.match(agents, /Repro Agent diagnostic mode/);
   assert.match(agents, /Fan Tool/);
   assert.equal(agents.match(/\{\{[A-Z_]+\}\}/g), null);
 
-  const skill = readFileSync(join(outDir, 'bugbridge-doctor', 'SKILL.md'), 'utf8');
-  assert.ok(skill.startsWith('---\nname: bugbridge-doctor\n'), 'skill needs frontmatter');
+  const skill = readFileSync(join(outDir, 'repro-agent', 'SKILL.md'), 'utf8');
+  assert.ok(skill.startsWith('---\nname: repro-agent\n'), 'skill needs frontmatter');
   assert.match(skill, /description: .+/);
   assert.equal(skill.match(/\{\{[A-Z_]+\}\}/g), null);
 });
@@ -165,7 +165,7 @@ test('build produces an offline page plus both adapters', () => {
 test('the WorkBuddy skill package contains no executable code', () => {
   const dir = sandbox();
   run(['adapters', 'workbuddy', '--out', dir]);
-  const skill = readFileSync(join(dir, 'bugbridge-doctor', 'SKILL.md'), 'utf8');
+  const skill = readFileSync(join(dir, 'repro-agent', 'SKILL.md'), 'utf8');
   // A skill that can run code is a supply-chain risk the user cannot audit before installing.
   for (const pattern of [/```(?:bash|sh|powershell|python|js|javascript)\n/, /<script/i]) {
     assert.doesNotMatch(skill, pattern, 'the skill must be pure markdown instructions');

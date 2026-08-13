@@ -1,13 +1,13 @@
 {
-  "protocol": "bugbridge/project",
+  "protocol": "repro-agent/project",
   "protocol_version": "1.0",
   "project": {
-    "name": "BugBridge CLI",
-    "repository": "https://github.com/gufan0000/bugbridge",
+    "name": "Repro Agent CLI",
+    "repository": "https://github.com/gufan0000/repro-agent",
     "repository_public": true,
     "mirrors": [],
     "deepwiki": false,
-    "issue_tracker": "https://github.com/gufan0000/bugbridge/issues"
+    "issue_tracker": "https://github.com/gufan0000/repro-agent/issues"
   },
   "defaults": {
     "language": "en",
@@ -21,16 +21,16 @@
   },
   "local_targets": {
     "any": {
-      "config_paths": [".bugbridge/project.json"],
-      "data_paths": ["bugbridge-support/"]
+      "config_paths": [".repro/project.json"],
+      "data_paths": ["repro-support/"]
     }
   },
   "diagnostic_hints": {
     "known_issues": [
       {
-        "symptom": "`bugbridge build` says the profile is not valid, but it looks fine",
+        "symptom": "`repro-agent build` says the profile is not valid, but it looks fine",
         "cause": "A field name was invented, or a `deny` policy value was loosened. The schema uses additionalProperties: false, so unknown keys are errors rather than being ignored.",
-        "fix": "Run `bugbridge validate .bugbridge/project.json` — it names the exact path of the offending field.",
+        "fix": "Run `repro-agent validate .repro/project.json` — it names the exact path of the offending field.",
         "reference": "spec/project.schema.json"
       },
       {
@@ -47,7 +47,7 @@
     ],
     "known_safe_checks": [
       "node --version  (must be 18.17 or newer)",
-      "npx bugbridge validate <the file that is failing>",
+      "npx repro-agent validate <the file that is failing>",
       "Confirm the file being validated starts with a \"protocol\" field"
     ],
     "known_dangerous_actions": [
@@ -56,7 +56,7 @@
     ],
     "verification_steps": [
       "npm test  — all tests must pass",
-      "npx bugbridge task --name X --summary y | head -20  — must render without placeholders"
+      "npx repro-agent task --name X --summary y | head -20  — must render without placeholders"
     ]
   },
   "escalation": {
