@@ -48,4 +48,19 @@ jobs:
 
       - run: npm test
 
-      - run: npm publish --access public
+      # Re-running a release, or tagging a version that was published by hand, should be a
+      # no-op rather than a red X. Only genuine publish failures should fail this job.
+      - name: Skip if this version is already on the registry
+        id: check
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          name="$(node -p "require('./package.json').name")"
+          if npm view "$name@$pkg" version >/dev/null 2>&1; then
+            echo "already-published=true" >> "$GITHUB_OUTPUT"
+            echo "$name@$pkg is already published — nothing to do"
+          else
+            echo "already-published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.check.outputs.already-published == 'false'
+        run: npm publish --access public
