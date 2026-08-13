@@ -13,6 +13,11 @@ No server. No telemetry. No SDK in your app. Works with whatever AI assistant th
 [The protocol](spec/PROTOCOL.md) ·
 [中文](README.zh-CN.md)
 
+[![CI](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
+[![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
+
 </div>
 
 ---
@@ -89,7 +94,7 @@ A model that follows this cannot produce a confident empty report. That is the e
 You need nothing installed and no GitHub account.
 
 1. Open the project's support page — a single HTML file, works offline, uploads nothing.
-   Or use the [generic one](web/index.html).
+   Or use the generic one: **[try it in your browser](https://gufan0000.github.io/repro-agent/web/)**.
 2. Describe what went wrong. One sentence is enough to start.
 3. Download the `.md` file, drag it into your AI assistant, and send `start`.
 

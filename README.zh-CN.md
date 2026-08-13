@@ -13,6 +13,11 @@
 [协议规范](spec/PROTOCOL.zh-CN.md) ·
 [English](README.md)
 
+[![CI](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
+[![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
+
 </div>
 
 ---
@@ -89,7 +94,7 @@ curl 的有效安全报告率从大约六分之一掉到了[二十分之一乃�
 不需要安装任何东西，也不需要 GitHub 账号。
 
 1. 打开该项目的自助诊断页面 —— 单个 HTML 文件，离线可用，不上传任何内容。
-   或者用[通用版](web/index.html)。
+   或者用通用版：**[在浏览器里直接试](https://gufan0000.github.io/repro-agent/web/)**。
 2. 描述出了什么问题。一句话就够开始了。
 3. 下载生成的 `.md` 文件，拖进你的 AI 助手，发送「开始」。
 
