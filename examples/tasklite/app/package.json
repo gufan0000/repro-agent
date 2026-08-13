@@ -1,0 +1,11 @@
+{
+  "name": "tasklite",
+  "version": "1.2.0",
+  "description": "A tiny task list CLI. Used as the field-test fixture for repro-agent.",
+  "type": "module",
+  "bin": {
+    "tasklite": "bin/tasklite.js"
+  },
+  "license": "MIT",
+  "private": true
+}

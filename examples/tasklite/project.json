@@ -1,0 +1,66 @@
+{
+  "protocol": "repro-agent/project",
+  "protocol_version": "1.0",
+  "project": {
+    "name": "TaskLite",
+    "repository": "https://github.com/gufan0000/repro-agent",
+    "repository_public": true,
+    "docs_url": "https://github.com/gufan0000/repro-agent/tree/main/examples/tasklite",
+    "issue_tracker": "https://github.com/gufan0000/repro-agent/issues"
+  },
+  "defaults": {
+    "language": "en",
+    "region": "global",
+    "autonomy": "guided",
+    "budget_profile": "standard"
+  },
+  "environment": {
+    "supported_os": ["Windows", "macOS", "Linux"],
+    "runtimes": ["Node.js >= 18"]
+  },
+  "local_targets": {
+    "windows": {
+      "config_paths": ["%APPDATA%\\TaskLite\\config.json"],
+      "log_paths": ["%APPDATA%\\TaskLite\\logs"],
+      "data_paths": ["%APPDATA%\\TaskLite"]
+    },
+    "macos": {
+      "config_paths": ["~/Library/Application Support/TaskLite/config.json"],
+      "log_paths": ["~/Library/Application Support/TaskLite/logs"],
+      "data_paths": ["~/Library/Application Support/TaskLite"]
+    },
+    "linux": {
+      "config_paths": ["~/.config/tasklite/config.json"],
+      "log_paths": ["~/.config/tasklite/logs"],
+      "data_paths": ["~/.config/tasklite"]
+    }
+  },
+  "diagnostic_hints": {
+    "known_safe_checks": [
+      "TaskLite ships inside the repro-agent repository: its source is under examples/tasklite/app/. Read it there rather than at the repository root.",
+      "Run `tasklite where` to print the data directory this install is actually using. TASKLITE_HOME overrides the default, so never assume the default path.",
+      "Run `tasklite --version` and compare it against the version the symptom was reported for.",
+      "Read the newest file in logs/ around the time the user says it failed. Every command writes a summary line there.",
+      "Confirm config.json is valid JSON. TaskLite falls back to defaults when it is not, and only says so in the log."
+    ],
+    "known_dangerous_actions": [
+      "Never delete or overwrite the task data file. It is the user's only copy — TaskLite has no cloud sync and no undo.",
+      "Do not edit files under the TaskLite install directory. Installs are replaced wholesale on upgrade, so a local patch is silently lost and makes the next report misleading."
+    ],
+    "verification_steps": [
+      "Re-run the exact command the user reported as failing.",
+      "Run `tasklite list` and confirm the tasks the user expected are present."
+    ]
+  },
+  "policy_overrides": {
+    "allow_modify_target_app_files": "deny"
+  },
+  "escalation": {
+    "report_path": "BUG_REPORT.md",
+    "redact": true,
+    "extra_questions": [
+      "Which program produced the file you were importing (Excel, Notepad, an export from another app)?",
+      "Did this ever work on an earlier version of TaskLite?"
+    ]
+  }
+}
