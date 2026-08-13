@@ -69,6 +69,6 @@ Two or three concrete suggestions: a specific function, a missing guard, a log l
 Severity: blocker / major / minor · Area: … · Likely a: bug / regression / config issue / environment issue / documentation gap
 ```
 
-If `escalation.extra_questions` is non-empty, append an **Additional information requested by the maintainers** section answering each one.
+If `escalation.extra_questions` is non-empty, append an **Additional information requested by the maintainers** section answering each one. Answer from the evidence you gathered wherever you can. Where the answer is something only the user knows and they are not available, write `Unknown` and state what you did observe that bears on it. A guessed answer here is worse than no answer, because the maintainer will act on it.
 
 Finish by telling the user, in plain language, exactly what to do with the file: which issue tracker to open, that the file is already redacted, and that they should still skim it before posting.

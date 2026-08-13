@@ -25,6 +25,7 @@ First release. The user-side loop is complete: describe a problem, hand it to an
 - Phase D evidence closure: source behaviour, local state, an explaining gap and a reversible fix are all required before any modification.
 - Budget exhaustion is defined to mean *write the report*, so weak models escalate instead of escalating their guesses.
 - Four option axes, each of which changes the emitted instructions: permission (`readonly` / `guided` / `auto-safe`), network (`global` / `china`), effort (`frugal` / `standard` / `deep`), assistant.
+- Five clarifications closing gaps found by [field report 001](docs/field-reports/2026-08-14-tasklite-crlf.md): source that is already on the machine, hard denials being unreachable by the approval workflow, the line between app files and the user's own data, one-line definitions for each outcome, and what to do with `extra_questions` when the user is unreachable.
 
 ### Data contract
 
@@ -38,4 +39,5 @@ First release. The user-side loop is complete: describe a problem, hand it to an
 - Single-file offline HTML generator, bilingual, CSP-locked to no network, no storage APIs, no external resources.
 - Adapters for generic `AGENTS.md` and WorkBuddy / OpenClaw skill packages. Markdown only, no executable code.
 - Redaction engine that removes credentials, emails, home directories and public IPs while preserving error codes, stack frames, versions and private addresses.
-- 59 tests covering schema acceptance and rejection, protocol assembly across all option combinations, safety invariants, redaction behaviour and offline guarantees.
+- 60 tests covering schema acceptance and rejection, protocol assembly across all option combinations, safety invariants, redaction behaviour and offline guarantees.
+- `examples/tasklite`: a runnable app with a planted defect, so the protocol can be tested rather than described. Its first blind run is written up in `docs/field-reports/`.

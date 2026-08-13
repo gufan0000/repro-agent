@@ -1,5 +1,11 @@
 # Examples
 
+## `tasklite/`
+
+A small Node CLI with a **deliberately planted bug**, plus its profile. This is the fixture the protocol is field-tested against: it runs, it writes real logs, and its source can be cited by line number, so a diagnostic run either works or visibly does not. See [field report 001](../docs/field-reports/2026-08-14-tasklite-crlf.md) for the first blind run against it, and [`tasklite/BUG_REPORT.example.md`](tasklite/BUG_REPORT.example.md) for what the agent produced.
+
+Its profile is worth reading for one thing in particular: `policy_overrides` turning a fixable problem into a deliberate escalation.
+
 ## `fantool-desktop/`
 
 A fictional Windows/macOS desktop app, written as a Chinese-audience project: `region: china` with a GitCode mirror, `budget_profile: frugal` for users on free model tiers, and `known_issues` written in the words users actually use.

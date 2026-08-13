@@ -14,9 +14,12 @@
 [English](README.md)
 
 [![CI](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/repro-agent.svg?color=cb3837)](https://www.npmjs.com/package/repro-agent)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
 [![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
+
+<img src="docs/screenshot-generator.zh-CN.png" alt="Repro Agent 页面：左边填写哪里坏了，右边生成可直接交给 AI 助手的诊断任务文件" width="820">
 
 </div>
 
@@ -94,7 +97,8 @@ curl 的有效安全报告率从大约六分之一掉到了[二十分之一乃�
 不需要安装任何东西，也不需要 GitHub 账号。
 
 1. 打开该项目的自助诊断页面 —— 单个 HTML 文件，离线可用，不上传任何内容。
-   或者用通用版：**[在浏览器里直接试](https://gufan0000.github.io/repro-agent/web/)**。
+   或者用通用版：**[在浏览器里直接试](https://gufan0000.github.io/repro-agent/web/)**
+   （GitHub 打不开或很慢的话，走这个[直接下载](https://cdn.jsdelivr.net/gh/gufan0000/repro-agent@main/web/index.html)，存下来双击打开即可）。
 2. 描述出了什么问题。一句话就够开始了。
 3. 下载生成的 `.md` 文件，拖进你的 AI 助手，发送「开始」。
 
@@ -185,11 +189,14 @@ repro-agent redact       发出去之前把文件里的敏感信息去掉
 
 ## 现状
 
-`0.1.0`，协议 `1.0`。规范、CLI、离线页面和两个适配器都已完成，59 个测试覆盖（`npm test`）。
+`0.1.0`，协议 `1.0`。规范、CLI、离线页面和两个适配器都已完成，60 个测试覆盖（`npm test`）。
+
+已经对着一个真实缺陷做过一次盲测：一个全新的 agent，只拿到一份任务文件和「开始」两个字，四分钟内定位到根因，按已安装版本给出了 `文件:行号` 的源码引用，排除了四个备选假设，遵守了策略禁令、一个字节都没改。它还顺带指出了协议本身的五个漏洞 —— 现在都已补上。过程记录和它产出的报告都在
+**[现场报告 001](docs/field-reports/2026-08-14-tasklite-crlf.md)**。
 
 如实说明局限：
 
-- 协议的结构、安全不变量和离线特性都有测试保证。**但某个具体模型在真实场景下能多好地遵守它，目前还没有度量。** 现在最有价值的贡献就是真实使用反馈。
+- 那只是**一次**运行、一个模型、一个缺陷，而且是在埋这个 bug 的人自己的机器上跑的。它是个下限，不是度量。**模型在真实场景下遵守这套协议有多稳定，仍然是未知数**，真实使用反馈依然是最有价值的贡献。
 - `region: china` 把回退链排出了合理顺序，但没有任何链条能保证在所有网络下都可达。所有路线都失败时，协议要求 agent 明说，并把结论标为「未核实」。
 - 目前提供通用（`AGENTS.md`）和 WorkBuddy 两个适配器。Claude Code、Cursor、Codex、Cline 都读 `AGENTS.md` 这类文件，用通用适配器现在就能跑；欢迎贡献专用适配器。
 - MCP server [在计划中](CHANGELOG.md)，还没写。
@@ -198,7 +205,7 @@ repro-agent redact       发出去之前把文件里的敏感信息去掉
 
 按价值排序，最有用的贡献大概是：
 
-1. **一份真实使用反馈。** 你拿它处理了一个真问题 —— 模型哪里做得好，哪里跑偏了？
+1. **一份真实使用反馈。** 你拿它处理了一个真问题 —— 模型哪里做得好，哪里跑偏了？[报告 001](docs/field-reports/2026-08-14-tasklite-crlf.md) 就是格式参考。**模型没遵守协议的那种反馈，比它表现良好的反馈更有价值。**
 2. **给你自己的项目写一条 `known_issues`**，作为 `examples/` 里的实例。
 3. **补上协议措辞的漏洞。** 改 `protocol/**`，跑 `npm run generate`，加一个测试。
 4. **写一个新适配器。**

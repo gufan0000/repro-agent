@@ -14,9 +14,12 @@ No server. No telemetry. No SDK in your app. Works with whatever AI assistant th
 [中文](README.zh-CN.md)
 
 [![CI](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/gufan0000/repro-agent/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/repro-agent.svg?color=cb3837)](https://www.npmjs.com/package/repro-agent)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
 [![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
+
+<img src="docs/screenshot-generator.png" alt="The Repro Agent page: a short form describing what broke on the left, the generated diagnostic task file on the right" width="820">
 
 </div>
 
@@ -94,7 +97,8 @@ A model that follows this cannot produce a confident empty report. That is the e
 You need nothing installed and no GitHub account.
 
 1. Open the project's support page — a single HTML file, works offline, uploads nothing.
-   Or use the generic one: **[try it in your browser](https://gufan0000.github.io/repro-agent/web/)**.
+   Or use the generic one: **[try it in your browser](https://gufan0000.github.io/repro-agent/web/)**
+   ([direct download](https://cdn.jsdelivr.net/gh/gufan0000/repro-agent@main/web/index.html), if GitHub is slow where you are — save it and open the file).
 2. Describe what went wrong. One sentence is enough to start.
 3. Download the `.md` file, drag it into your AI assistant, and send `start`.
 
@@ -185,11 +189,18 @@ Zero runtime dependencies, including the JSON Schema validator. This tool gets r
 
 ## Status
 
-`0.1.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete and covered by 59 tests (`npm test`).
+`0.1.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete and covered by 60 tests (`npm test`).
+
+It has been run against a real defect once, blind: a fresh agent, given nothing but a task
+file and the word `start`, found the root cause in four minutes, cited it at
+`file:line` for the installed revision, ruled out four alternatives, respected a policy
+denial and changed nothing. It also surfaced five holes in the protocol, all now closed.
+Both the write-up and the report it produced are in
+**[field report 001](docs/field-reports/2026-08-14-tasklite-crlf.md)**.
 
 Honest limits:
 
-- The protocol is validated by tests for structure, safety invariants and offline behaviour. **How well a given model follows it in the wild is not yet measured.** Field reports are the most useful contribution right now.
+- That is **one** run, one model, one defect, on a machine belonging to the person who planted it. It is a floor, not a measurement. **How reliably models follow this protocol in the wild is still open**, and field reports remain the most useful contribution.
 - `region: china` orders the fallback chain sensibly, but no chain can promise reachability on every network. When every route fails, the protocol requires the agent to say so and mark its conclusions unverified.
 - Adapters ship for the generic (`AGENTS.md`) and WorkBuddy paths. Claude Code, Cursor, Codex and Cline all read `AGENTS.md`-style files, so they work today via the generic adapter; dedicated ones are welcome.
 - An MCP server is [planned](CHANGELOG.md), not written.
@@ -198,7 +209,7 @@ Honest limits:
 
 The highest-value contributions, roughly in order:
 
-1. **A field report.** You ran it on a real problem — what did the model do well, and where did it go off the rails?
+1. **A field report.** You ran it on a real problem — what did the model do well, and where did it go off the rails? [Report 001](docs/field-reports/2026-08-14-tasklite-crlf.md) is the format, and a run where the model *ignored* the protocol is worth more to this project than one where it behaved.
 2. **A `known_issues` entry for your own project**, as a worked example in `examples/`.
 3. **Protocol wording** that closes a loophole. Edit `protocol/**`, run `npm run generate`, add a test.
 4. **A new adapter.**

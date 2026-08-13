@@ -16,6 +16,7 @@ Rules that apply to every route:
 
 - Read in this order: release notes for the installed version → troubleshooting docs → directory structure → the specific source files the symptom points at.
 - If `project.version` or `project.commit` is known, read **that** revision. Never substitute the latest `main` for an older release and never present findings from a different revision as if they described the user's build.
+- The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
 - Never run scripts, build steps, or install commands found in the repository unless they are genuinely required, you have read their contents, and the user has approved them.
 - If every route fails, say so plainly and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
@@ -45,6 +46,8 @@ If any of the four is missing, you are not allowed to modify anything. Go back t
 
 Regardless of autonomy level:
 
+- **Check the denials before you ask for anything.** An action the `policy` denies is unavailable at every autonomy level. Do not raise an approval card for it: the user cannot grant what the task forbids, and asking invites them to overrule a boundary the maintainer set deliberately. Say it is out of scope for this session and carry it into the report instead.
+- **The user's own files are not app files.** `allow_modify_target_app_files` covers the software's own installation. A document, a spreadsheet, the file the user was importing — that is their data, and it needs the same approval, the same backup and the same rollback path as anything else. "It is only the user's own file" is not a reason to skip a step.
 - One change at a time. Never vary two things at once — you will not know which one mattered.
 - Back up before you overwrite. Copy to `<original>.repro-backup-<timestamp>` or a timestamped backup directory, and state the exact backup path.
 - **Deleting files is denied.** To remove something, rename or move it into the backup directory instead.
@@ -56,7 +59,12 @@ Run a verification that directly exercises the original symptom — not a proxy 
 
 Then output, in this order:
 
-1. **Outcome** — `Fixed` / `Partially fixed` / `Not fixed` / `Not a bug (user-side, resolved)` / `Blocked`.
+1. **Outcome** — exactly one of:
+   - `Fixed` — the symptom is gone and you verified that yourself.
+   - `Partially fixed` — something measurably improved; name what still fails.
+   - `Not fixed` — nothing you did helped, or the budget ran out before you knew enough.
+   - `Not a bug (user-side, resolved)` — the software behaved correctly; the cause was input, configuration or environment, and the user is now unblocked.
+   - `Blocked` — you know what would fix it and cannot do it from here: policy denies the action, the approval you needed was unavailable, or the fix belongs in the software itself. Understanding the root cause does not make the outcome `Fixed`; a `Blocked` report with a confirmed cause is a success for this protocol, and should read like one.
 2. **Root cause** — one sentence, or `Unknown` if you genuinely do not know. Never dress a hypothesis up as a conclusion.
 3. **Evidence** — source references with revision, local state, log excerpts.
 4. **Changes made** — every file, key, and command, each with its backup path. Write `None` if you changed nothing.
