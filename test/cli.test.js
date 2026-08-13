@@ -74,7 +74,7 @@ test('--version after a subcommand is the user\'s software version, not the tool
   const out = join(dir, 'T.md');
   run(['task', '--name', 'X', '--summary', 'y', '--version', '2.0.1', '-o', out]);
   assert.match(readFileSync(out, 'utf8'), /"version": "2\.0\.1"/);
-  assert.match(run(['--version']), /^\d+\.\d+/);
+  assert.match(run(['--version']), /^repro-agent \d+\.\d+\.\d+ /);
 });
 
 test('an invalid choice is rejected with the list of valid ones', () => {
@@ -197,4 +197,11 @@ test('-o creates the directory it was told to write into', () => {
   writeFileSync(input, 'token=ghp_0123456789abcdefghijABCDEFGHIJ0123\n');
   run(['redact', input, '-o', redacted]);
   assert.ok(existsSync(redacted));
+});
+
+test('--version reports the package version, not the protocol version', () => {
+  // These two numbers move independently, and a bug report that quotes "1.0" when the
+  // tool is 0.1.1 sends the maintainer looking at the wrong code.
+  const out = run(['--version']).trim();
+  assert.match(out, /^repro-agent \d+\.\d+\.\d+ \(protocol \d+\.\d+\)$/, out);
 });

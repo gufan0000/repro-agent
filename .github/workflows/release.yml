@@ -1,0 +1,51 @@
+name: Release
+
+# Publishing is driven by tags, and authenticated with npm trusted publishing (OIDC).
+# There is no npm token in this repository and none in GitHub secrets: the runner mints a
+# short-lived, workflow-scoped credential that cannot be extracted or replayed. It also
+# gets npm provenance for free, so the registry can attest which commit produced the
+# tarball.
+#
+# One-time setup on npmjs.com (package settings -> Trusted publisher):
+#   Publisher: GitHub Actions · Repository: gufan0000/repro-agent · Workflow: release.yml
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required to mint the OIDC token npm exchanges for publish rights
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1+; the npm bundled with Node 22 is older.
+      - run: npm install -g npm@latest
+
+      - run: npm ci
+
+      - name: Refuse to publish a tag that disagrees with package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME says $tag, package.json says $pkg" >&2
+            exit 1
+          fi
+          echo "publishing $pkg"
+
+      - run: npm test
+
+      - run: npm publish --access public

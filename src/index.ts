@@ -6,6 +6,7 @@ import { cmdBuild } from './commands/build.js';
 import { cmdRedact } from './commands/redact.js';
 import { cmdAdapters } from './commands/adapters.js';
 import { PROTOCOL_VERSION } from './core/types.js';
+import { PACKAGE_VERSION } from './core/protocol-data.js';
 
 const USAGE = `repro-agent — turn "it doesn't work" into a fix, or a bug report a maintainer can act on
 
@@ -80,7 +81,9 @@ async function main(): Promise<number> {
   // `--version` only means "print the version" with no subcommand; `repro-agent task --version 1.4.0`
   // is the version of the *user's* software, which is a far more common thing to type.
   if (!command && (args.flags['version'] || args.flags['v'])) {
-    process.stdout.write(`${PROTOCOL_VERSION}\n`);
+    // Both numbers matter and they move independently, so print both. Leading with the
+    // package version is what every other CLI does and what a bug report will quote.
+    process.stdout.write(`repro-agent ${PACKAGE_VERSION} (protocol ${PROTOCOL_VERSION})\n`);
     return 0;
   }
   if (!command || args.flags['help'] || args.flags['h'] || command === 'help') {
