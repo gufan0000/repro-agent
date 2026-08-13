@@ -189,7 +189,7 @@ Zero runtime dependencies, including the JSON Schema validator. This tool gets r
 
 ## Status
 
-`0.1.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete and covered by 60 tests (`npm test`).
+`0.1.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete and covered by 61 tests (`npm test`).
 
 It has been run against a real defect once, blind: a fresh agent, given nothing but a task
 file and the word `start`, found the root cause in four minutes, cited it at
