@@ -52,7 +52,7 @@
   "scripts": {
     "generate": "node tools/build-protocol.mjs",
     "build": "npm run generate && tsc -p tsconfig.json",
-    "test": "npm run build && node --test \"test/**/*.test.js\"",
+    "test": "npm run build && node tools/run-tests.mjs",
     "check": "npm run generate -- --check && tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build"
   },
