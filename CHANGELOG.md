@@ -5,6 +5,17 @@ The package version and the protocol version move independently; protocol change
 
 ## [Unreleased]
 
+Planned, roughly in order:
+
+- **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
+- **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
+- **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
+- **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
+
+## [0.3.0] — 2026-08-14
+
+Protocol `1.0` is unchanged. This release is about the developer who will not run a command.
+
 ### Added — a package a developer can ship without adapting anything
 
 Every route into this project so far assumed the maintainer would run something. Two new
@@ -20,13 +31,7 @@ The single bilingual `repro-agent-user-<version>.zip` from 0.2.0 is replaced by 
 ### Fixed
 
 - **`repro-agent build --region china` without a profile still emitted `global`.** The page's three technical selects were read straight from the DOM but never seeded from the embedded defaults, so they sat on their first `<option>` no matter what the maintainer had asked for. Same shape as the 0.2.0 drift bug, one layer down. Budget and assistant host were affected identically.
-
-Planned, roughly in order:
-
-- **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
-- **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
-- **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
-- **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
+- **Every page without a maintainer profile opened with an empty white card**, the hosted one included. `.locked{display:flex}` quietly beats the `hidden` attribute.
 
 ## [0.2.0] — 2026-08-14
 
