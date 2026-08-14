@@ -77,3 +77,63 @@ jobs:
 
       - if: steps.check.outputs.already-published == 'false'
         run: npm publish --access public
+
+  assets:
+    # Every tag needs the file an ordinary user is told to download. Until now only v0.1.0
+    # carried one, so anyone following the README got a page several versions out of date.
+    name: attach the user download to the release
+    needs: publish
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Assemble the download
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mkdir -p out/pack
+          cp web/index.html "out/repro-agent-support.html"
+          cp web/index.html "out/pack/Start diagnosis.html"
+          cat > "out/pack/README.txt" <<'TXT'
+          Repro Agent — offline diagnostic page
+          =====================================
+          Open "Start diagnosis.html" by double-clicking it. It runs entirely inside your
+          browser: it never connects to the internet and nothing you type leaves this
+          computer.
+
+          Describe what went wrong, download the .md file it produces, then drag that file
+          into your AI assistant and send: start
+
+          Source and issues: https://github.com/gufan0000/repro-agent
+
+          离线诊断页
+          =========
+          双击打开「Start diagnosis.html」。它完全在你的浏览器里运行，从不联网，你填写的
+          任何内容都不会离开这台电脑。
+
+          描述一下出了什么问题，下载它生成的 .md 文件，把那个文件拖进你的 AI 助手，
+          然后发送：开始
+          TXT
+          (cd out/pack && zip -q -r "../repro-agent-user-${version}.zip" .)
+          (cd out && sha256sum repro-agent-support.html "repro-agent-user-${version}.zip" > SHA256SUMS.txt)
+          ls -l out
+
+      - name: Upload to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release upload "$GITHUB_REF_NAME" \
+            "out/repro-agent-support.html" \
+            "out/repro-agent-user-${version}.zip" \
+            "out/SHA256SUMS.txt" --clobber

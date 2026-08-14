@@ -19,7 +19,7 @@
 [![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
 [![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
 
-<img src="docs/screenshot-generator.zh-CN.png" alt="Repro Agent 页面：左边填写哪里坏了，右边生成可直接交给 AI 助手的诊断任务文件" width="820">
+<img src="docs/screenshot-generator.zh-CN.png" alt="项目自带的 Repro Agent 页面：一句话说清问题，点几下即可，项目自身的信息锁在顶部" width="820">
 
 </div>
 
@@ -97,10 +97,12 @@ curl 的有效安全报告率从大约六分之一掉到了[二十分之一乃�
 不需要安装任何东西，也不需要 GitHub 账号。
 
 1. 打开该项目的自助诊断页面 —— 单个 HTML 文件，离线可用，不上传任何内容。
-   或者用通用版：**[在浏览器里直接试](https://gufan0000.github.io/repro-agent/web/)**
-   （GitHub 打不开或很慢的话，走这个[直接下载](https://cdn.jsdelivr.net/gh/gufan0000/repro-agent@main/web/index.html)，存下来双击打开即可）。
-2. 描述出了什么问题。一句话就够开始了。
+   项目没提供？**[在浏览器里直接试](https://gufan0000.github.io/repro-agent/web/)**，
+   或者[下载最新版](https://github.com/gufan0000/repro-agent/releases/latest)存到本地双击打开。
+2. 先选最接近的问题类型，再用一句话说清楚。不知道的地方留空，或者直接选「不清楚」。
 3. 下载生成的 `.md` 文件，拖进你的 AI 助手，发送「开始」。
+
+只有一句话是必填的，其余点几下就行 —— 不用你去翻日志，也不用填任何路径。如果项目自己提供了页面，仓库、镜像和排查位置都已经填好，而且不会被误改。
 
 它会先看后动，每次改动前都解释清楚，动手前先备份。如果修不好，它会写一份 `BUG_REPORT.md`，你直接贴到 issue 里就行。
 
@@ -189,7 +191,7 @@ repro-agent redact       发出去之前把文件里的敏感信息去掉
 
 ## 现状
 
-`0.1.1`，协议 `1.0`。规范、CLI、离线页面和两个适配器都已完成，61 个测试覆盖（`npm test`）。
+`0.2.0`，协议 `1.0`。规范、CLI、离线页面和两个适配器都已完成，62 个测试（`npm test`）加 8 个真实浏览器测试（`npm run test:browser`）覆盖，在 Linux、macOS、Windows 上跑 Node 20 和 22。
 
 已经对着一个真实缺陷做过一次盲测：一个全新的 agent，只拿到一份任务文件和「开始」两个字，四分钟内定位到根因，按已安装版本给出了 `文件:行号` 的源码引用，排除了四个备选假设，遵守了策略禁令、一个字节都没改。它还顺带指出了协议本身的五个漏洞 —— 现在都已补上。过程记录和它产出的报告都在
 **[现场报告 001](docs/field-reports/2026-08-14-tasklite-crlf.md)**。

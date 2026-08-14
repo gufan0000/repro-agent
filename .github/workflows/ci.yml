@@ -42,14 +42,31 @@ jobs:
         run: npm run generate -- --check
       - name: typecheck
         run: npx tsc -p tsconfig.json --noEmit
-      - name: checked-in adapters
+      - name: checked-in adapters and offline page
         run: |
           npm run build
           node tools/build-adapters.mjs
-          git diff --exit-code -- adapters/ || {
-            echo "::error::adapters/ is stale — run 'npm run build && node tools/build-adapters.mjs' and commit"
+          git diff --exit-code -- adapters/ web/index.html || {
+            echo "::error::generated files are stale — run 'npm run build && node tools/build-adapters.mjs' and commit"
             exit 1
           }
+
+  browser:
+    # The offline page is the artifact a non-technical person actually opens. Asserting on
+    # its source text is not enough: the maintainer defaults that never reached the builder,
+    # and the project fields a user could overwrite, both passed a green string-matching
+    # suite. One real browser, one OS — enough to catch that class of bug.
+    name: the offline page works in a real browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
 
   dogfood:
     name: our own profile is valid

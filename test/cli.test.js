@@ -205,3 +205,24 @@ test('--version reports the package version, not the protocol version', () => {
   const out = run(['--version']).trim();
   assert.match(out, /^repro-agent \d+\.\d+\.\d+ \(protocol \d+\.\d+\)$/, out);
 });
+
+test('a mistyped flag fails loudly instead of being ignored', () => {
+  // `build --output x` used to exit 0 and write to the default directory, which reads as
+  // "the build produced nothing".
+  assert.throws(() => run(['build', '--output', '/tmp/x']), (error) => {
+    assert.match(String(error.stderr), /unknown option `--output`/);
+    assert.equal(error.status, 2);
+    return true;
+  });
+
+  assert.throws(() => run(['task', '--name', 'X', '--summry', 'typo']), (error) => {
+    assert.match(String(error.stderr), /did you mean `--summary`/);
+    return true;
+  });
+
+  // Real flags must keep working, including the repeatable ones.
+  const dir = sandbox();
+  run(['task', '--name', 'X', '--summary', 'y', '--step', 'a', '--step', 'b',
+    '--log-path', 'C:/logs', '-o', join(dir, 'T.md')]);
+  assert.ok(existsSync(join(dir, 'T.md')));
+});

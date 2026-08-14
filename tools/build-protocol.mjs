@@ -64,11 +64,9 @@ const schemaSource =
     )
     .join('\n');
 
-const jsonPayload = JSON.stringify(protocol);
 const targets = [
   { path: join(root, 'src', 'core', 'protocol-data.ts'), next: tsSource },
   { path: join(root, 'src', 'core', 'schema-data.ts'), next: schemaSource },
-  { path: join(root, 'web', 'index.html'), next: injectIntoHtml(join(root, 'web', 'index.html'), jsonPayload) },
 ];
 
 let stale = 0;
@@ -96,23 +94,3 @@ if (checkOnly && stale > 0) {
 }
 if (!checkOnly && stale === 0) console.log('protocol artifacts already up to date');
 
-function injectIntoHtml(path, payload) {
-  let html;
-  try {
-    html = readFileSync(path, 'utf8');
-  } catch {
-    return null; // web/index.html not created yet
-  }
-  const start = '/* REPRO:PROTOCOL:START */';
-  const end = '/* REPRO:PROTOCOL:END */';
-  const from = html.indexOf(start);
-  const to = html.indexOf(end);
-  if (from === -1 || to === -1) {
-    console.error(`web/index.html is missing the ${start} / ${end} markers`);
-    process.exit(1);
-  }
-  // JSON is embedded as a JS literal inside <script>; `</script>` inside a string would
-  // terminate the tag early, and U+2028/9 are not valid in JS string literals.
-  const safe = payload.replace(/[<\u2028\u2029]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
-  return html.slice(0, from + start.length) + '\nconst PROTOCOL = ' + safe + ';\n' + html.slice(to);
-}

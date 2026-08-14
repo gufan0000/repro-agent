@@ -12,6 +12,43 @@ Planned, roughly in order:
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
 - **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
+## [0.2.0] — 2026-08-14
+
+Protocol `1.0` is unchanged. This release is about the offline page: what it generates, and who is allowed to change what.
+
+### Fixed — the page and the CLI had drifted
+
+The page carried its own hand-written copy of the task builder, and that copy had fallen behind. For a project whose profile set `budget_profile: frugal`, `agent_host: workbuddy` and `policy_overrides: { allow_run_repository_scripts: "deny" }`, the page produced a task with the `standard` budget, the `generic` host, and **`allow_run_repository_scripts: "ask"`**.
+
+That last one is a security boundary, not a cosmetic difference: the README promises that a maintainer profile can only ever tighten the policy, and on this path it silently loosened it. Mirrors lost their `kind` and everything past the first one; `environment.runtimes` was dropped entirely.
+
+- The page now runs the real builder. `src/browser/entry.ts` re-exports the core, `tools/bundle-core.mjs` inlines the compiled modules into the single offline file, and nothing in `web/` reimplements core logic. Runtime dependencies are still zero, and so are bundler dependencies.
+- `repro-agent build` injects all five maintainer defaults into the page, not three.
+- Everything the page generates is checked against `task.schema.json` — the same validator the CLI uses — before it can be downloaded.
+
+### Fixed — users could overwrite the maintainer's facts
+
+Project name, repository, mirror and issue tracker were ordinary form fields: "clear" wiped them, and importing saved answers could replace the repository with any URL, producing a valid-looking task that pointed at the wrong project. They are now displayed as a locked card and have no editable control at all.
+
+### Changed — the page a non-technical person actually sees
+
+- A project-specific page now opens with **one** required text box. It was 41 controls and roughly 4,000px of scrolling on a phone.
+- Problem type, frequency and onset are single-tap choices, every one of them with a "Not sure".
+- Repository, mirrors, issue tracker, commit, log/config/install paths, process names, region, budget and agent host are gone from the user's view. They come from the profile, or the agent checks them itself.
+- Only `guided` and `readonly` are offered. `auto-safe` remains in the protocol and the CLI for maintainers.
+- A project that supports one operating system no longer asks the user which one they are on. Previously, not answering meant the maintainer's platform-specific paths never reached the task.
+- With no maintainer profile the page becomes a helper mode — "diagnose an open-source project for someone" — which asks for a repository URL and infers the name from it. The two audiences were sharing one form, which is why a single sentence was not enough to generate anything.
+
+### Added
+
+- A real-browser test job. Every defect above passed a green string-matching suite; the new job asserts zero network requests, one visible input, locked project facts, and that the page and the CLI produce a deep-equal task from the same answers.
+- Every tag now attaches the user download to its GitHub release: the offline page, a zip with instructions in both languages, and `SHA256SUMS.txt`. Only `v0.1.0` had ever carried one.
+- `--version` and unknown-flag handling: `repro-agent build --output x` used to exit 0 and write somewhere else. It now exits 2 and suggests `--out`.
+
+### Credit
+
+Every defect in this release was found by an independent review of `0.1.2`, including the browser-versus-CLI comparison that exposed the policy drift.
+
 ## [0.1.2] — 2026-08-14
 
 - The published tarball's README carried a stale status line: it still said `0.1.0` and `60 tests`, because those lines were corrected after 0.1.1 had already gone out.

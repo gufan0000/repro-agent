@@ -19,7 +19,7 @@ No server. No telemetry. No SDK in your app. Works with whatever AI assistant th
 [![Protocol](https://img.shields.io/badge/protocol-1.0-6f42c1.svg)](spec/PROTOCOL.md)
 [![Zero dependencies](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](package.json)
 
-<img src="docs/screenshot-generator.png" alt="The Repro Agent page: a short form describing what broke on the left, the generated diagnostic task file on the right" width="820">
+<img src="docs/screenshot-generator.png" alt="A project's Repro Agent page: one sentence to describe the problem, a few taps, and the project's own details locked at the top" width="820">
 
 </div>
 
@@ -97,10 +97,12 @@ A model that follows this cannot produce a confident empty report. That is the e
 You need nothing installed and no GitHub account.
 
 1. Open the project's support page — a single HTML file, works offline, uploads nothing.
-   Or use the generic one: **[try it in your browser](https://gufan0000.github.io/repro-agent/web/)**
-   ([direct download](https://cdn.jsdelivr.net/gh/gufan0000/repro-agent@main/web/index.html), if GitHub is slow where you are — save it and open the file).
-2. Describe what went wrong. One sentence is enough to start.
+   No project page? **[Try it in your browser](https://gufan0000.github.io/repro-agent/web/)**, or
+   [download the latest one](https://github.com/gufan0000/repro-agent/releases/latest) and open the file.
+2. Pick the closest description of the problem, then say it in one sentence. Anything you do not know, leave blank or answer "Not sure".
 3. Download the `.md` file, drag it into your AI assistant, and send `start`.
+
+One required sentence, a few taps, no logs to find and no paths to type. Where the project ships its own page, its repository, mirrors and diagnostic locations are already filled in and cannot be edited by accident.
 
 It looks before it touches, explains every change before making it, and backs things up. If it cannot fix the problem, it writes `BUG_REPORT.md` for you to paste into an issue.
 
@@ -171,7 +173,8 @@ This protocol hands an AI agent access to a non-technical person's computer. Tha
 - **Evidence before action.** Source behaviour, local state, an explaining gap, and a reversible fix — all four, or it is not allowed to change anything.
 - **A budget that ends in escalation, not desperation.** Weak models start guessing when they run low. The protocol makes running out of budget mean *write the report*, explicitly.
 - **The skill packages contain no executable code.** A skill that can run commands is a supply chain you cannot audit before installing. This one is markdown, and a test enforces that.
-- **The offline page never connects.** CSP `connect-src 'none'`, no `fetch`, no external resources, no storage APIs — [asserted in the test suite](test/offline.test.js), not just promised.
+- **The offline page never connects.** CSP `connect-src 'none'`, no `fetch`, no external resources, no storage APIs — [asserted in the test suite](test/offline.test.js) and re-checked in a real browser, not just promised.
+- **One task builder, not two.** The page runs the same compiled code as the CLI. It used to carry its own copy, and that copy had drifted far enough to turn a maintainer's `deny` into an `ask` — see [0.2.0](CHANGELOG.md). A test now fails if the two ever disagree.
 - **Reports are redacted before they are public.** Tokens, keys, JWTs, emails, home directories and public IPs out; error codes, stack frames, versions and private addresses in. Over-redacting produces a useless report, so the rules are specific.
 
 ## CLI
@@ -189,7 +192,7 @@ Zero runtime dependencies, including the JSON Schema validator. This tool gets r
 
 ## Status
 
-`0.1.1`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete and covered by 61 tests (`npm test`).
+`0.2.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete, covered by 62 tests (`npm test`) plus 8 real-browser tests (`npm run test:browser`) on Linux, macOS and Windows across Node 20 and 22.
 
 It has been run against a real defect once, blind: a fresh agent, given nothing but a task
 file and the word `start`, found the root cause in four minutes, cited it at

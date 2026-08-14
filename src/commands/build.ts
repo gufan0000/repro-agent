@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path';
 import type { Args } from '../index.js';
 import { assetPath } from '../core/paths.js';
 import { renderAgentsMd, renderWorkbuddySkill } from './adapters.js';
-import { str, pick, loadProfile, LANGUAGES, REGIONS, AUTONOMIES } from './shared.js';
+import { str, pick, loadProfile, LANGUAGES, REGIONS, AUTONOMIES, BUDGETS, HOSTS } from './shared.js';
 import type { ProjectProfile } from '../core/types.js';
 
 const PROFILE_START = '/* REPRO:PROFILE:START */';
@@ -20,6 +20,8 @@ export function embedProfile(html: string, profile: ProjectProfile | undefined, 
   language: string;
   region: string;
   autonomy: string;
+  budget_profile: string;
+  agent_host: string;
 }): string {
   const start = html.indexOf(PROFILE_START);
   const end = html.indexOf(PROFILE_END);
@@ -48,12 +50,18 @@ export function cmdBuild(args: Args): number {
   const language = pick(args, 'lang', LANGUAGES, profile?.defaults?.language ?? 'en');
   const region = pick(args, 'region', REGIONS, profile?.defaults?.region ?? 'global');
   const autonomy = pick(args, 'autonomy', AUTONOMIES, profile?.defaults?.autonomy ?? 'guided');
+  // These two used to be left out, so the page silently fell back to `standard` and
+  // `generic` for projects whose maintainer had asked for something else.
+  const budgetProfile = pick(args, 'budget', BUDGETS, profile?.defaults?.budget_profile ?? 'standard');
+  const agentHost = pick(args, 'host', HOSTS, profile?.defaults?.agent_host ?? 'generic');
 
   const outDir = resolve(str(args, 'out', 'repro-support'));
   mkdirSync(outDir, { recursive: true });
 
   const html = readFileSync(assetPath('web', 'index.html'), 'utf8');
-  const built = embedProfile(html, profile, { language, region, autonomy });
+  const built = embedProfile(html, profile, {
+    language, region, autonomy, budget_profile: budgetProfile, agent_host: agentHost,
+  });
   const htmlName = profile ? `${slug(profile.project.name)}-support.html` : 'repro-support.html';
   writeFileSync(join(outDir, htmlName), built, 'utf8');
 

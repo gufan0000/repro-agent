@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { newTaskId } from './id.js';
 import { validate, formatErrors, type SchemaError } from './schema.js';
 import { TASK_SCHEMA, PROJECT_SCHEMA } from './schema-data.js';
 import {
@@ -126,7 +126,7 @@ export function buildTask(input: TaskInput): Task {
   const task: Task = {
     protocol: 'repro-agent/task',
     protocol_version: PROTOCOL_VERSION,
-    task_id: input.taskId ?? randomUUID(),
+    task_id: input.taskId ?? newTaskId(),
     created_at: input.createdAt ?? new Date().toISOString(),
     language,
     options: { agent_host: agentHost, region, autonomy, budget_profile: budgetProfile },

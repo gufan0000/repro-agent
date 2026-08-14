@@ -41,15 +41,13 @@ test('the page stores nothing on the machine beyond the file the user downloads'
 });
 
 test('the protocol text is embedded, not fetched', () => {
-  const start = html.indexOf('/* REPRO:PROTOCOL:START */');
-  const end = html.indexOf('/* REPRO:PROTOCOL:END */');
-  assert.ok(start !== -1 && end > start, 'protocol markers missing');
-  const block = html.slice(start, end);
-  assert.match(block, /const PROTOCOL = \{/);
+  // It now arrives inside the inlined core rather than as a separate block, so assert on
+  // the text itself: several fragments in both languages, and no loader that could fetch it.
   for (const fragment of ['00-header', '10-authority', '20-workflow', 'route-china', 'mode-auto-safe']) {
-    assert.ok(block.includes(fragment), `embedded protocol is missing ${fragment}`);
+    assert.ok(html.includes(fragment), `the page is missing protocol fragment ${fragment}`);
   }
-  assert.ok(block.includes('zh-CN') && block.includes('"en"'), 'both languages must be embedded');
+  assert.ok(html.includes('# Repro Agent Diagnostic Task'), 'English protocol header missing');
+  assert.ok(html.includes('# Repro Agent 诊断任务'), 'Chinese protocol header missing');
 });
 
 test('the profile markers are present so `repro-agent build` can prefill the page', () => {
@@ -59,34 +57,66 @@ test('the profile markers are present so `repro-agent build` can prefill the pag
   assert.match(html.slice(start, end), /const EMBEDDED =/);
 });
 
-test('the embedded protocol JSON is syntactically valid JavaScript', async () => {
-  const block = html.slice(
-    html.indexOf('/* REPRO:PROTOCOL:START */') + '/* REPRO:PROTOCOL:START */'.length,
-    html.indexOf('/* REPRO:PROTOCOL:END */'),
-  );
+test('the page runs the real task builder, not a copy of it', async () => {
+  // The page used to carry a hand-written buildTask that had drifted from the CLI: it
+  // ignored policy_overrides and fell back to the standard budget. Nothing may reimplement
+  // the core, so the page must expose the genuine article and it must behave identically.
   const { runInNewContext } = await import('node:vm');
-  const protocol = runInNewContext(`${block}; PROTOCOL`);
-  assert.ok(protocol.en['00-header'].startsWith('# Repro Agent'));
-  assert.ok(protocol['zh-CN']['00-header'].startsWith('# Repro Agent'));
+  const start = html.indexOf('/* REPRO:CORE:START */') + '/* REPRO:CORE:START */'.length;
+  const bundled = html.slice(start, html.indexOf('/* REPRO:CORE:END */'));
+  const sandbox = {};
+  sandbox.globalThis = sandbox;
+  runInNewContext(bundled, sandbox);
+
+  const core = sandbox.ReproCore;
+  assert.ok(core, 'the page does not expose ReproCore');
+  for (const fn of ['buildTask', 'validateTask', 'renderTask', 'formatErrors']) {
+    assert.equal(typeof core[fn], 'function', `ReproCore.${fn} is missing`);
+  }
+
+  const { buildTask } = await import('../dist/core/task.js');
+  const input = {
+    profile: {
+      protocol: 'repro-agent/project',
+      protocol_version: '1.0',
+      project: { name: 'FanTool', repository: 'https://github.com/o/r' },
+      defaults: { budget_profile: 'frugal', agent_host: 'workbuddy', region: 'china' },
+      policy_overrides: { allow_run_repository_scripts: 'deny' },
+    },
+    problem: { summary: 'nothing happens' },
+    taskId: 'fixed-id',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+  assert.equal(JSON.stringify(core.buildTask(input)), JSON.stringify(buildTask(input)));
 });
 
-test('the embedded protocol matches protocol/ on disk', async () => {
-  const { PROTOCOL_FRAGMENTS } = await import('../dist/core/protocol-data.js');
-  const block = html.slice(
-    html.indexOf('/* REPRO:PROTOCOL:START */') + '/* REPRO:PROTOCOL:START */'.length,
-    html.indexOf('/* REPRO:PROTOCOL:END */'),
-  );
+test('the page honours a maintainer policy override, like the CLI does', async () => {
   const { runInNewContext } = await import('node:vm');
-  const embedded = runInNewContext(`${block}; PROTOCOL`);
-  // Compared as JSON: objects from another VM realm have a different Object.prototype,
-  // which deepStrictEqual treats as a mismatch even when the contents are identical.
-  assert.equal(JSON.stringify(embedded), JSON.stringify(PROTOCOL_FRAGMENTS));
+  const start = html.indexOf('/* REPRO:CORE:START */') + '/* REPRO:CORE:START */'.length;
+  const sandbox = {};
+  sandbox.globalThis = sandbox;
+  runInNewContext(html.slice(start, html.indexOf('/* REPRO:CORE:END */')), sandbox);
+
+  const task = sandbox.ReproCore.buildTask({
+    profile: {
+      protocol: 'repro-agent/project',
+      protocol_version: '1.0',
+      project: { name: 'FanTool' },
+      defaults: { budget_profile: 'frugal' },
+      policy_overrides: { allow_run_repository_scripts: 'deny' },
+    },
+    problem: { summary: 'nothing happens' },
+  });
+  assert.equal(task.policy.allow_run_repository_scripts, 'deny', 'a maintainer denial was lost');
+  assert.equal(task.options.budget_profile, 'frugal', 'the maintainer budget was lost');
+  assert.equal(task.budget.max_active_hypotheses, 2, 'frugal budget values were not applied');
+  assert.equal(sandbox.ReproCore.validateTask(task).length, 0, 'the page can build an invalid task');
 });
 
 test('the page is bilingual', () => {
   assert.ok(html.includes("'zh-CN': {"), 'no Chinese UI strings');
-  assert.match(html, /data-lang="zh-CN"/);
-  assert.match(html, /data-lang="en"/);
+  assert.ok(html.includes('中文'), 'no Chinese language switch');
+  assert.ok(html.includes('English'), 'no English language switch');
 });
 
 test('build-time profile embedding produces a page that still parses', async () => {
@@ -96,7 +126,9 @@ test('build-time profile embedding produces a page that still parses', async () 
     protocol_version: '1.0',
     project: { name: 'Demo </script> <b>', repository: 'https://github.com/o/r' },
   };
-  const built = embedProfile(html, profile, { language: 'zh-CN', region: 'china', autonomy: 'guided' });
+  const built = embedProfile(html, profile, {
+    language: 'zh-CN', region: 'china', autonomy: 'guided', budget_profile: 'frugal', agent_host: 'workbuddy',
+  });
   // A `</script>` inside the payload would end the script tag early and break the page.
   const start = built.indexOf('/* REPRO:PROFILE:START */') + '/* REPRO:PROFILE:START */'.length;
   const block = built.slice(start, built.indexOf('/* REPRO:PROFILE:END */'));
@@ -105,4 +137,7 @@ test('build-time profile embedding produces a page that still parses', async () 
   const embedded = runInNewContext(`${block}; EMBEDDED`);
   assert.equal(embedded.profile.project.name, 'Demo </script> <b>');
   assert.equal(embedded.defaults.region, 'china');
+  // These two were the ones the page silently ignored before.
+  assert.equal(embedded.defaults.budget_profile, 'frugal');
+  assert.equal(embedded.defaults.agent_host, 'workbuddy');
 });

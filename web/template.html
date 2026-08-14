@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Repro Agent</title>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--text:#141b2d;--muted:#5d6b82;--line:#dfe5ee;--soft:#f0f4f9;--accent:#2f5fe0;--accent2:#1e3fa8;--ok:#0f7a5a;--warn:#8a5a00;--danger:#b42318;--shadow:0 10px 32px rgba(24,40,72,.09)}
+@media (prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151c28;--text:#e6ecf6;--muted:#93a1b8;--line:#26303f;--soft:#1b2432;--accent:#6f95ff;--accent2:#8fadff;--ok:#4fd1a5;--warn:#e0aa4a;--danger:#ff8b80;--shadow:0 10px 32px rgba(0,0,0,.35)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.wrap{max-width:760px;margin:auto;padding:0 16px 64px}
+header{background:linear-gradient(135deg,#132a63,#2f5fe0);color:#fff;padding:24px 0 22px;margin-bottom:18px}
+header .wrap{padding-bottom:0}
+.htop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+h1{margin:0 0 7px;font-size:25px;letter-spacing:-.02em}
+header p{margin:0;opacity:.92;max-width:620px}
+.chips{display:flex;gap:7px;margin-top:13px;flex-wrap:wrap}
+.chip{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);font-weight:600;font-size:12.5px}
+.langswitch button{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;padding:6px 11px;border-radius:8px;font:600 13px/1 inherit;cursor:pointer}
+.langswitch button[aria-pressed=true]{background:#fff;color:#1c3f9e}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px 18px 20px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:17px}
+.card .sub{margin:0 0 14px;color:var(--muted);font-size:13px}
+.locked{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;padding:13px 16px}
+.locked .name{font-weight:700;font-size:15.5px}
+.locked .why{color:var(--muted);font-size:12.5px;margin-top:2px}
+.locked .badge{background:rgba(15,122,90,.12);color:var(--ok);border:1px solid rgba(15,122,90,.3);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;white-space:nowrap}
+label{display:block;font-weight:600;font-size:13px;margin:14px 0 6px}
+label:first-child{margin-top:0}
+.req{color:var(--danger)}
+input,textarea,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit;color:var(--text);background:var(--panel)}
+textarea{min-height:92px;resize:vertical}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,95,224,.16)}
+.count{text-align:right;color:var(--muted);font-size:12px;margin-top:4px}
+.hint{margin:6px 0 0;color:var(--muted);font-size:12.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px}
+.tiles button{text-align:left;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:11px 13px;border-radius:10px;font:600 13.5px/1.3 inherit;cursor:pointer}
+.tiles button small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:3px}
+.tiles button[aria-pressed=true]{border-color:var(--accent);background:rgba(47,95,224,.09);color:var(--accent)}
+.tiles button[aria-pressed=true] small{color:inherit;opacity:.85}
+.pills{display:flex;gap:7px;flex-wrap:wrap}
+.pills button{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 13px;border-radius:999px;font:600 13px/1.2 inherit;cursor:pointer}
+.pills button[aria-pressed=true]{border-color:var(--accent);background:var(--accent);color:#fff}
+.note{border-radius:10px;padding:11px 13px;font-size:13px;border:1px solid var(--line);background:var(--soft);margin-top:14px}
+.note.warn{border-color:rgba(138,90,0,.35);color:var(--warn)}
+details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-weight:600;font-size:13.5px;color:var(--accent)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px}
+button.btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:11px 16px;border-radius:10px;font:600 14px/1.2 inherit;cursor:pointer}
+button.btn:hover{border-color:var(--accent)}
+button.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.btn.primary:hover{background:var(--accent2)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+#errors{display:none;background:rgba(180,35,24,.09);border:1px solid rgba(180,35,24,.35);color:var(--danger);border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:14px}
+#errors ul{margin:6px 0 0;padding-left:20px}
+#result{display:none}
+ol.steps{margin:10px 0 0;padding-left:22px}
+ol.steps li{margin:6px 0}
+pre{margin:10px 0 0;padding:14px;background:#0d1522;color:#cfe0ff;overflow:auto;max-height:50vh;white-space:pre-wrap;word-break:break-word;border-radius:10px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+footer{color:var(--muted);font-size:12.5px;text-align:center;padding:6px 16px 0}
+@media(max-width:620px){h1{font-size:21px}.tiles{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="htop">
+      <div>
+        <h1 id="t-title">Repro Agent</h1>
+        <p id="t-tagline"></p>
+      </div>
+      <div class="langswitch">
+        <button id="lang-en" type="button">English</button>
+        <button id="lang-zh" type="button">中文</button>
+      </div>
+    </div>
+    <div class="chips">
+      <span class="chip" id="t-chip1"></span>
+      <span class="chip" id="t-chip2"></span>
+      <span class="chip" id="t-chip3"></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card locked" id="projectCard" hidden>
+    <div>
+      <div class="name" id="projectCardName"></div>
+      <div class="why" id="projectCardWhy"></div>
+    </div>
+    <span class="badge" id="projectCardBadge"></span>
+  </div>
+
+  <div id="errors" role="alert"></div>
+
+  <!-- Helper mode: no maintainer profile, so the project has to be identified. -->
+  <div class="card" id="secProject" hidden>
+    <h2 id="t-projTitle"></h2>
+    <p class="sub" id="t-projSub"></p>
+    <label for="repo" id="l-repo"></label>
+    <input id="repo" type="url" placeholder="https://github.com/owner/repo" autocomplete="off">
+    <p class="hint" id="t-repoHint"></p>
+    <label for="projectName" id="l-projectName"></label>
+    <input id="projectName" type="text" autocomplete="off">
+  </div>
+
+  <div class="card">
+    <h2 id="t-s1Title"></h2>
+    <p class="sub" id="t-s1Sub"></p>
+    <div id="categoryWrap">
+      <label id="l-category"></label>
+      <div class="tiles" id="categoryTiles"></div>
+    </div>
+    <label for="summary" id="l-summary"></label>
+    <textarea id="summary" maxlength="500"></textarea>
+    <div class="count"><span id="summaryCount">0</span>/500</div>
+  </div>
+
+  <div class="card">
+    <h2 id="t-s2Title"></h2>
+    <p class="sub" id="t-s2Sub"></p>
+    <label id="l-frequency"></label>
+    <div class="pills" id="frequencyPills"></div>
+    <label id="l-onset"></label>
+    <div class="pills" id="onsetPills"></div>
+    <div id="osWrap" hidden>
+      <label id="l-os"></label>
+      <div class="pills" id="osPills"></div>
+    </div>
+    <details id="moreDetails">
+      <summary id="t-more"></summary>
+      <label for="steps" id="l-steps"></label>
+      <textarea id="steps"></textarea>
+      <label for="expected" id="l-expected"></label>
+      <input id="expected" type="text" autocomplete="off">
+      <label for="observed" id="l-observed"></label>
+      <input id="observed" type="text" autocomplete="off">
+      <label for="version" id="l-version"></label>
+      <input id="version" type="text" autocomplete="off">
+      <div id="advancedWrap" hidden>
+        <label for="mirror" id="l-mirror"></label>
+        <input id="mirror" type="url" autocomplete="off">
+        <label for="issues" id="l-issues"></label>
+        <input id="issues" type="url" autocomplete="off">
+        <label for="region" id="l-region"></label>
+        <select id="region"><option value="global">global</option><option value="china">china</option></select>
+        <label for="budget" id="l-budget"></label>
+        <select id="budget"><option value="frugal">frugal</option><option value="standard">standard</option><option value="deep">deep</option></select>
+        <label for="host" id="l-host"></label>
+        <select id="host">
+          <option value="generic">generic</option><option value="workbuddy">WorkBuddy / CodeBuddy</option>
+          <option value="claude-code">Claude Code</option><option value="cursor">Cursor</option>
+          <option value="codex">Codex</option><option value="cline">Cline</option>
+        </select>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2 id="t-s3Title"></h2>
+    <p class="sub" id="t-s3Sub"></p>
+    <div class="tiles" id="autonomyTiles"></div>
+    <div class="note warn" id="t-safety"></div>
+    <div class="actions">
+      <button class="btn" id="btnPreview" type="button"></button>
+      <button class="btn primary" id="btnGenerate" type="button"></button>
+    </div>
+  </div>
+
+  <div class="card" id="result">
+    <h2 id="t-resultTitle"></h2>
+    <p class="sub" id="resultMeta"></p>
+    <ol class="steps" id="handoffSteps"></ol>
+    <div class="actions">
+      <button class="btn" id="btnCopy" type="button"></button>
+      <button class="btn primary" id="btnDownload" type="button"></button>
+    </div>
+    <details>
+      <summary id="t-raw"></summary>
+      <pre id="rawTask"></pre>
+    </details>
+  </div>
+
+  <footer id="t-footer"></footer>
+</div>
+
+<script>
+/* REPRO:CORE:START */
+/* REPRO:CORE:END */
+/* REPRO:PROFILE:START */
+const EMBEDDED = { profile: null, defaults: {} };
+/* REPRO:PROFILE:END */
+
+(function () {
+'use strict';
+const Core = globalThis.ReproCore;
+const profile = EMBEDDED.profile;
+const defaults = EMBEDDED.defaults || {};
+const hasProfile = !!profile;
+
+const HOST_LABEL = {
+  generic: 'AI assistant', workbuddy: 'WorkBuddy', 'claude-code': 'Claude Code',
+  cursor: 'Cursor', codex: 'Codex', cline: 'Cline', other: 'AI assistant',
+};
+const HOST_LABEL_ZH = {
+  generic: 'AI 助手', workbuddy: 'WorkBuddy', 'claude-code': 'Claude Code',
+  cursor: 'Cursor', codex: 'Codex', cline: 'Cline', other: 'AI 助手',
+};
+
+const CATEGORIES = [
+  { id: 'launch', en: ['Will not open', 'Nothing happens, or it refuses to start'], zh: ['打不开 / 启动失败', '双击没反应，或提示无法启动'] },
+  { id: 'crash', en: ['Crashes or freezes', 'Quits by itself, blank window, or hangs'], zh: ['闪退 / 卡死', '打开后退出、白屏或长时间不动'] },
+  { id: 'feature', en: ['A feature does nothing', 'A button, import, save or sync misbehaves'], zh: ['某个功能没反应', '按钮、导入、保存或同步异常'] },
+  { id: 'install', en: ['Install or update fails', 'Downloading, installing or upgrading breaks'], zh: ['安装 / 更新失败', '下载、安装、升级或卸载有问题'] },
+  { id: 'slow', en: ['Slow or heavy', 'Stutters, or uses a lot of CPU, memory or disk'], zh: ['很慢 / 占用很高', '卡顿、CPU、内存或磁盘异常'] },
+  { id: 'other', en: ['Something else', 'None of the above fits'], zh: ['其他问题', '以上都不太像'] },
+];
+const CATEGORY_TEXT = {
+  en: { launch: 'Will not open / fails to start', crash: 'Crashes or freezes', feature: 'A feature does nothing',
+        install: 'Install or update fails', slow: 'Slow or high resource use', other: 'Other' },
+  'zh-CN': { launch: '打不开 / 启动失败', crash: '闪退 / 卡死', feature: '某个功能没反应',
+        install: '安装 / 更新失败', slow: '很慢 / 占用很高', other: '其他问题' },
+};
+const FREQUENCIES = [
+  { id: 'always', en: 'Every time', zh: '每次都出现' }, { id: 'often', en: 'Often', zh: '经常' },
+  { id: 'sometimes', en: 'Sometimes', zh: '偶尔' }, { id: 'once', en: 'Only once', zh: '只出现过一次' },
+  { id: '', en: 'Not sure', zh: '不清楚' },
+];
+const ONSETS = [
+  { id: 'fresh-install', en: 'Since I installed it', zh: '刚安装就这样' },
+  { id: 'after-update', en: 'After an update', zh: '更新后开始' },
+  { id: 'after-settings', en: 'After changing a setting', zh: '改过设置后' },
+  { id: 'suddenly', en: 'It worked before, then stopped', zh: '之前正常，突然出现' },
+  { id: '', en: 'Not sure', zh: '不清楚' },
+];
+const ONSET_TEXT = {
+  en: { 'fresh-install': 'Never worked; broken since install', 'after-update': 'Started after an update',
+        'after-settings': 'Started after a settings change', suddenly: 'Worked before, then stopped' },
+  'zh-CN': { 'fresh-install': '刚安装就这样，从未正常过', 'after-update': '更新之后开始出现',
+        'after-settings': '改过设置之后开始出现', suddenly: '之前一直正常，突然出现' },
+};
+const OS_CHOICES = [
+  { id: 'Windows', label: 'Windows' }, { id: 'macOS', label: 'macOS' }, { id: 'Linux', label: 'Linux' },
+];
+
+const I18N = {
+  en: {
+    title: 'Repro Agent',
+    taglineProfile: (n) => `Something wrong with ${n}? Describe it in one sentence — the technical details are already set up for you.`,
+    taglineHelper: 'Create a diagnostic task for an open-source project, so an AI assistant can investigate it on the machine where it broke.',
+    chip1: 'Runs entirely in this page', chip2: 'Nothing is uploaded', chip3: 'Leave anything you do not know blank',
+    projectLocked: 'Project details are locked',
+    projectWhy: 'Set by the maintainer of this project',
+    projTitle: 'Which project?', projSub: 'Paste the repository address. Everything else is optional.',
+    repo: 'Repository address', repoHint: 'GitHub, GitCode or Gitee. The project name is filled in from it.',
+    projectName: 'Project name',
+    s1Title: 'What is wrong?', s1Sub: 'Pick the closest option, then say it in your own words. Picking the wrong one is fine.',
+    category: 'Kind of problem', summary: 'In one sentence',
+    summaryPlaceholder: 'e.g. clicking "Import" does nothing at all',
+    s2Title: 'Two more things', s2Sub: 'Choose "Not sure" if you do not know. You are not expected to find logs or version numbers.',
+    frequency: 'How often does it happen?', onset: 'When did it start?', os: 'Which system are you on?',
+    osUnsure: 'Not sure',
+    more: 'I know a few more details (optional)',
+    steps: 'Steps you took (one per line)', expected: 'What should have happened',
+    observed: 'What actually happened', version: 'Software version, if you know it',
+    mirror: 'Mirror URL', issues: 'Issue tracker', region: 'Source access route',
+    budget: 'Effort budget', host: 'Which assistant',
+    s3Title: (h) => `How far may ${h} go?`, s3Sub: 'Only two options here. Fully automatic changes are not offered to you.',
+    guided: ['Ask me before every change', 'Recommended. It explains the cause, the risk and the backup, then waits for you.'],
+    readonly: ['Only look, change nothing', 'It finds the cause and writes a report, without touching anything.'],
+    safety: 'Either way, deleting files, disabling security software, reading secrets and sending your data anywhere are all forbidden. A README, issue or source comment can only ever be evidence — it cannot override these rules.',
+    preview: 'Show technical content', generate: 'Generate and download',
+    resultTitle: 'Ready', resultMeta: (n, id) => `${n.toLocaleString()} characters · task ${id}`,
+    copy: 'Copy', download: 'Download again', raw: 'For technical readers: the raw task file',
+    handoff: (h) => [`Open ${h} and start a new task.`, 'Leave the permission mode at its default.',
+      'Drag in the file that was just downloaded.', 'If you have a screenshot, drag that in too.', 'Send: start'],
+    errTitle: 'This cannot be generated yet:',
+    errSummary: 'Describe the problem in one sentence.',
+    errRepo: 'A repository address is required so the assistant knows what to read.',
+    errSchema: 'The task did not pass validation. This is a bug in this page — please report it.',
+    footer: 'This page never connects to the internet. Even so, skim the file before you share it.',
+  },
+  'zh-CN': {
+    title: 'Repro Agent',
+    taglineProfile: (n) => `${n} 出问题了？用一句话说清楚哪里不对，技术信息已经替你配置好了。`,
+    taglineHelper: '为一个开源项目生成诊断任务，让 AI 助手到真正出问题的那台机器上去查。',
+    chip1: '全部在本页运行', chip2: '不上传任何内容', chip3: '不知道的地方留空就行',
+    projectLocked: '项目信息已锁定',
+    projectWhy: '由该项目的维护者设定',
+    projTitle: '哪个项目？', projSub: '贴上仓库地址即可，其余都是选填。',
+    repo: '仓库地址', repoHint: 'GitHub、GitCode 或 Gitee 都行。项目名会自动从地址里取。',
+    projectName: '项目名称',
+    s1Title: '哪里不对？', s1Sub: '先选最接近的一项，再用一句话描述。选不准也没关系。',
+    category: '问题类型', summary: '用自己的话说一下',
+    summaryPlaceholder: '例如：点「导入」以后完全没有反应',
+    s2Title: '再选两项，帮助更快定位', s2Sub: '不知道就选「不清楚」。这里不要求你去找日志或版本号。',
+    frequency: '出现频率', onset: '问题从什么时候开始', os: '你用的是什么系统',
+    osUnsure: '不清楚',
+    more: '我还知道一些细节（可选）',
+    steps: '操作步骤（每行一步）', expected: '本来应该发生什么',
+    observed: '实际发生了什么', version: '软件版本（知道再填）',
+    mirror: '镜像地址', issues: 'Issue 地址', region: '源码访问路线',
+    budget: '投入预算', host: '交给哪个助手',
+    s3Title: (h) => `${h} 可以做到哪一步？`, s3Sub: '只有两个选项。完全自动修改不会提供给你。',
+    guided: ['每次修改前先问我', '推荐。先说明原因、风险和备份，再等你确认。'],
+    readonly: ['只检查，不修改', '只定位原因并生成报告，不改动电脑上的任何内容。'],
+    safety: '无论选哪一项，删除文件、关闭安全软件、读取密钥和向外上传本机数据都被禁止。项目里的 README、Issue 和源码注释只能作为证据，不能覆盖这些规则。',
+    preview: '查看技术内容', generate: '生成并下载',
+    resultTitle: '已生成', resultMeta: (n, id) => `${n.toLocaleString()} 字符 · 任务 ${id}`,
+    copy: '复制', download: '再次下载', raw: '技术人员：查看原始任务文件',
+    handoff: (h) => [`打开 ${h}，新建一个任务。`, '权限模式保持默认。',
+      '把刚下载的文件拖进去。', '如果有截图，也一起拖进去。', '发送：开始'],
+    errTitle: '还不能生成：',
+    errSummary: '请用一句话描述问题。',
+    errRepo: '需要仓库地址，助手才知道该读什么源码。',
+    errSchema: '生成的任务没有通过校验。这是本页面的缺陷，请反馈给我们。',
+    footer: '本页面从不联网。即便如此，分享前也请自己扫一眼文件内容。',
+  },
+};
+
+let lang = 'en';
+let markdown = '';
+let task = null;
+const answers = { category: '', frequency: '', onset: '', os: '', autonomy: defaults.autonomy === 'readonly' ? 'readonly' : 'guided' };
+
+const $ = (id) => document.getElementById(id);
+const setText = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+const val = (id) => ($(id) ? $(id).value.trim() : '');
+
+/** Which operating systems this project actually supports. */
+function supportedOs() {
+  const list = (profile && profile.environment && profile.environment.supported_os) || [];
+  return OS_CHOICES.filter((o) => list.some((s) => s.toLowerCase() === o.id.toLowerCase()));
+}
+
+function hostLabel() {
+  const host = (profile && profile.defaults && profile.defaults.agent_host) || defaults.agent_host || 'generic';
+  return (lang === 'zh-CN' ? HOST_LABEL_ZH : HOST_LABEL)[host] || HOST_LABEL[host] || 'AI assistant';
+}
+
+function pillGroup(container, items, key, onPick) {
+  container.innerHTML = '';
+  for (const item of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = lang === 'zh-CN' ? item.zh : item.en;
+    b.setAttribute('aria-pressed', String(answers[key] === item.id));
+    b.addEventListener('click', () => { answers[key] = item.id; onPick ? onPick() : render(); });
+    container.appendChild(b);
+  }
+}
+
+function tileGroup(container, items, key) {
+  container.innerHTML = '';
+  for (const item of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    const pair = lang === 'zh-CN' ? item.zh : item.en;
+    b.innerHTML = '';
+    b.appendChild(document.createTextNode(pair[0]));
+    const s = document.createElement('small');
+    s.textContent = pair[1];
+    b.appendChild(s);
+    b.setAttribute('aria-pressed', String(answers[key] === item.id));
+    b.addEventListener('click', () => { answers[key] = item.id; render(); });
+    container.appendChild(b);
+  }
+}
+
+function render() {
+  const t = I18N[lang];
+  document.documentElement.lang = lang === 'zh-CN' ? 'zh-CN' : 'en';
+  $('lang-en').setAttribute('aria-pressed', String(lang === 'en'));
+  $('lang-zh').setAttribute('aria-pressed', String(lang === 'zh-CN'));
+
+  setText('t-title', t.title);
+  setText('t-tagline', hasProfile ? t.taglineProfile(profile.project.name) : t.taglineHelper);
+  setText('t-chip1', t.chip1); setText('t-chip2', t.chip2); setText('t-chip3', t.chip3);
+
+  if (hasProfile) {
+    $('projectCard').hidden = false;
+    setText('projectCardName', profile.project.name);
+    setText('projectCardWhy', t.projectWhy);
+    setText('projectCardBadge', t.projectLocked);
+  } else {
+    $('secProject').hidden = false;
+    setText('t-projTitle', t.projTitle); setText('t-projSub', t.projSub);
+    setText('l-repo', t.repo); setText('t-repoHint', t.repoHint);
+    setText('l-projectName', t.projectName);
+    $('advancedWrap').hidden = false;
+  }
+
+  setText('t-s1Title', t.s1Title); setText('t-s1Sub', t.s1Sub);
+  setText('l-category', t.category); setText('l-summary', t.summary);
+  $('summary').placeholder = t.summaryPlaceholder;
+  tileGroup($('categoryTiles'), CATEGORIES, 'category');
+
+  setText('t-s2Title', t.s2Title); setText('t-s2Sub', t.s2Sub);
+  setText('l-frequency', t.frequency); setText('l-onset', t.onset); setText('l-os', t.os);
+  pillGroup($('frequencyPills'), FREQUENCIES, 'frequency');
+  pillGroup($('onsetPills'), ONSETS, 'onset');
+
+  const oses = supportedOs();
+  if (hasProfile && oses.length === 1) {
+    answers.os = oses[0].id;              // Only one platform: never ask.
+    $('osWrap').hidden = true;
+  } else {
+    const choices = (oses.length ? oses : OS_CHOICES).map((o) => ({ id: o.id, en: o.label, zh: o.label }));
+    choices.push({ id: '', en: t.osUnsure, zh: t.osUnsure });
+    pillGroup($('osPills'), choices, 'os');
+    $('osWrap').hidden = false;
+  }
+
+  setText('t-more', t.more);
+  setText('l-steps', t.steps); setText('l-expected', t.expected);
+  setText('l-observed', t.observed); setText('l-version', t.version);
+  setText('l-mirror', t.mirror); setText('l-issues', t.issues);
+  setText('l-region', t.region); setText('l-budget', t.budget); setText('l-host', t.host);
+
+  setText('t-s3Title', t.s3Title(hostLabel())); setText('t-s3Sub', t.s3Sub);
+  tileGroup($('autonomyTiles'), [
+    { id: 'guided', en: t.guided, zh: I18N['zh-CN'].guided },
+    { id: 'readonly', en: t.readonly, zh: I18N['zh-CN'].readonly },
+  ].map((o) => ({ id: o.id, en: I18N.en[o.id], zh: I18N['zh-CN'][o.id] })), 'autonomy');
+  setText('t-safety', t.safety);
+
+  setText('btnPreview', t.preview); setText('btnGenerate', t.generate);
+  setText('t-resultTitle', t.resultTitle); setText('btnCopy', t.copy);
+  setText('btnDownload', t.download); setText('t-raw', t.raw);
+  setText('t-footer', t.footer);
+  if (task) showResult();
+}
+
+function showErrors(list) {
+  const box = $('errors');
+  if (!list.length) { box.style.display = 'none'; box.textContent = ''; return; }
+  box.style.display = 'block';
+  box.textContent = I18N[lang].errTitle;
+  const ul = document.createElement('ul');
+  for (const message of list) {
+    const li = document.createElement('li');
+    li.textContent = message;
+    ul.appendChild(li);
+  }
+  box.appendChild(ul);
+  box.scrollIntoView({ block: 'nearest' });
+}
+
+/**
+ * Assemble the answers into a task.
+ *
+ * Everything project-shaped comes from `profile`, which the user cannot edit. In helper
+ * mode there is no maintainer, so the person filling the form *is* the source of those
+ * facts and may set them.
+ */
+function build() {
+  const t = I18N[lang];
+  const problems = [];
+  const summary = val('summary');
+  if (!summary) problems.push(t.errSummary);
+  if (!hasProfile && !val('repo')) problems.push(t.errRepo);
+  if (problems.length) { showErrors(problems); return null; }
+
+  const categoryLabel = answers.category ? CATEGORY_TEXT[lang][answers.category] : '';
+  const onsetLabel = answers.onset ? ONSET_TEXT[lang][answers.onset] : '';
+
+  const input = {
+    profile: profile || undefined,
+    language: lang,
+    autonomy: answers.autonomy,
+    os: answers.os || undefined,
+    environment: answers.os ? { os: answers.os } : undefined,
+    problem: {
+      summary: categoryLabel ? `[${categoryLabel}] ${summary}` : summary,
+      expected: val('expected'),
+      observed: val('observed'),
+      reproduction_steps: val('steps') ? val('steps').split(/\r?\n/).map((s) => s.trim()).filter(Boolean) : [],
+      frequency: answers.frequency,
+      changed_recently: onsetLabel,
+    },
+    project: { version: val('version') },
+  };
+
+  // With a maintainer profile, every project fact comes from it — the page has no editable
+  // field for any of them. Without one, whoever is filling this in *is* the source.
+  if (!hasProfile) {
+    input.project = {
+      name: val('projectName') || repoName(val('repo')) || 'Unknown project',
+      repository: val('repo'),
+      version: val('version'),
+      issue_tracker: val('issues'),
+      mirrors: val('mirror') ? [{ url: val('mirror').replace(/\/$/, '') }] : undefined,
+    };
+    input.region = val('region');
+    input.budgetProfile = val('budget');
+    input.agentHost = val('host');
+  }
+
+  const built = Core.buildTask(input);
+
+  // The same validator the CLI uses. A task that cannot pass it is never offered for
+  // download — generating "mostly valid" output is how a user ends up filing an issue
+  // that the maintainer's own tooling rejects.
+  const errors = Core.validateTask(built);
+  if (errors.length) {
+    showErrors([t.errSchema, Core.formatErrors(errors)]);
+    return null;
+  }
+
+  showErrors([]);
+  return built;
+}
+
+function repoName(url) {
+  const m = String(url).match(/([^/]+?)(?:\.git)?\/?$/);
+  return m ? m[1] : '';
+}
+
+function showResult() {
+  const t = I18N[lang];
+  $('result').style.display = 'block';
+  setText('resultMeta', t.resultMeta(markdown.length, task.task_id.slice(0, 8)));
+  const ol = $('handoffSteps');
+  ol.innerHTML = '';
+  for (const step of t.handoff(hostLabel())) {
+    const li = document.createElement('li');
+    li.textContent = step;
+    ol.appendChild(li);
+  }
+  $('rawTask').textContent = markdown;
+}
+
+function download() {
+  const name = hasProfile ? `${slug(profile.project.name)}-REPRO_TASK.md` : 'REPRO_TASK.md';
+  const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function slug(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'repro-agent';
+}
+
+function generate(andDownload) {
+  const built = build();
+  if (!built) return;
+  task = built;
+  markdown = Core.renderTask(built);
+  showResult();
+  if (andDownload) download();
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+$('lang-en').addEventListener('click', () => { lang = 'en'; render(); });
+$('lang-zh').addEventListener('click', () => { lang = 'zh-CN'; render(); });
+$('summary').addEventListener('input', () => setText('summaryCount', String($('summary').value.length)));
+$('btnGenerate').addEventListener('click', () => generate(true));
+$('btnPreview').addEventListener('click', () => generate(false));
+$('btnDownload').addEventListener('click', download);
+$('btnCopy').addEventListener('click', () => {
+  const ta = document.createElement('textarea');
+  ta.value = markdown; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (e) { /* clipboard unavailable; the file is still downloadable */ }
+  ta.remove();
+});
+$('repo') && $('repo').addEventListener('input', () => {
+  if (!$('projectName').value) $('projectName').value = repoName(val('repo'));
+});
+
+// The reader's own browser language wins — this page is for them, not for the maintainer.
+lang = String(navigator.language || '').toLowerCase().startsWith('zh') ? 'zh-CN'
+  : defaults.language === 'zh-CN' ? 'zh-CN' : 'en';
+render();
+})();
+</script>
+</body>
+</html>
