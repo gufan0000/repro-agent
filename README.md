@@ -108,6 +108,39 @@ It looks before it touches, explains every change before making it, and backs th
 
 ## For maintainers: ship it with your project
 
+### The two-minute version: download it and ship it
+
+If you install nothing and write no config, this still works. Pick the package your users
+are on and put the folder wherever you already put things people download:
+
+| Download | For | Contains |
+|---|---|---|
+| [`repro-agent-user-zh-CN-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Users in mainland China | `开始诊断.html` · `使用说明.txt` · `开发者须知.txt` |
+| [`repro-agent-user-en-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Everyone else | `Start diagnosis.html` · `README.txt` · `FOR-DEVELOPERS.txt` |
+
+They differ in more than the readme's language: the `zh-CN` page tries GitCode and Gitee
+before GitHub, which is the difference between the assistant reading your source and
+telling the user it cannot reach it. Both hide the mirror, budget and source-route fields —
+those are your vocabulary, not your users'.
+
+Shipped as-is, the page asks the user which software broke. Open the HTML in a text editor
+and fill in the `repro-project` block at the very top, and it stops asking:
+
+```jsonc
+{
+  "name": "FanTool",
+  "repository": "https://github.com/you/fantool",
+  "mirror": "https://gitcode.com/you/fantool",
+  "issue_tracker": "https://github.com/you/fantool/issues"
+}
+```
+
+That block sets those four values and nothing else. It cannot widen the policy, raise the
+budget or change the permission mode, and a malformed address is reported on the page
+rather than silently dropped.
+
+### The full version: a page that knows your project
+
 ```bash
 npx repro-agent init          # creates .repro/project.json
 ```

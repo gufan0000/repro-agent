@@ -50,6 +50,26 @@ execFileSync(process.execPath, [cli, 'build', '--profile', profilePath, '--out',
 const pageUrl = pathToFileURL(join(dir, 'kit', 'fantool-support.html')).href;
 const genericUrl = pathToFileURL(join(root, 'web', 'index.html')).href;
 
+// The drop-in package: what a developer downloads and ships without running anything and
+// without writing a profile. `cwd` matters — this repository has a .repro/project.json of
+// its own, and picking it up would quietly test the wrong thing.
+execFileSync(process.execPath, [cli, 'build', '--lang', 'zh-CN', '--region', 'china', '--out', join(dir, 'zh')],
+  { cwd: dir, stdio: 'ignore' });
+const dropInSource = readFileSync(join(dir, 'zh', 'repro-support.html'), 'utf8');
+const dropInUrl = pathToFileURL(join(dir, 'zh', 'repro-support.html')).href;
+
+/** A copy of the drop-in page with the developer block at the top filled in as given. */
+function dropInWith(name, body) {
+  const marked = dropInSource.replace(
+    /(<script type="application\/json" id="repro-project">)[\s\S]*?(<\/script>)/,
+    (_m, open, close) => `${open}\n${body}\n${close}`,
+  );
+  assert.notEqual(marked, dropInSource, 'the repro-project block was not found in the built page');
+  const file = join(dir, `dropin-${name}.html`);
+  writeFileSync(file, marked);
+  return pathToFileURL(file).href;
+}
+
 const browser = await chromium.launch();
 test.after(async () => {
   await browser.close();
@@ -197,5 +217,112 @@ test('without a maintainer profile the page asks for the project instead', async
   const task = await generate(page, { summary: 'import reports success but imports nothing' });
   assert.equal(task.project.name, 'repro-agent', 'the name should be inferred from the URL');
   assert.equal(task.project.repository, 'https://github.com/gufan0000/repro-agent');
+  await context.close();
+});
+
+test('nothing empty is rendered above the first question', async () => {
+  // `.locked{display:flex}` used to beat the `hidden` attribute, so every page without a
+  // maintainer profile — including the hosted one — opened with a blank white card.
+  for (const url of [dropInUrl, genericUrl]) {
+    const { page, context } = await open(url);
+    const empty = await page.evaluate(() =>
+      [...document.querySelectorAll('.card,.note')]
+        .filter((el) => el.checkVisibility() && !el.innerText.trim())
+        .map((el) => el.id || el.className));
+    assert.deepEqual(empty, [], `${url} renders empty blocks: ${empty.join(', ')}`);
+    await context.close();
+  }
+});
+
+test('a shipped page with an empty block asks for a name, never a repository URL', async () => {
+  const { page, context } = await open(dropInUrl);
+
+  // The person holding this file received it inside somebody's installer. They know what
+  // the program is called and nothing else, so that is the only thing worth asking.
+  assert.equal(await page.locator('#repo').isVisible(), false, 'a user was asked for a repository URL');
+  assert.equal(await page.locator('#advancedWrap').isVisible(), false, 'maintainer fields leaked into a shipped page');
+  assert.equal(await page.locator('#projectName').isVisible(), true);
+  assert.equal(await page.locator('#configNote').isVisible(), false, 'an untouched block is not an error');
+
+  await page.click('#btnGenerate');
+  assert.match(await page.locator('#errors').textContent(), /\S/, 'an unnamed program should not generate');
+
+  await page.fill('#projectName', 'FanTool');
+  const task = await generate(page, { summary: 'the import button does nothing' });
+  assert.equal(task.project.name, 'FanTool');
+  assert.equal(task.project.repository, undefined, 'a repository was invented');
+  // The whole point of the china variant. Before this, the select was left at its first
+  // option and `build --region china` without a profile still emitted `global`.
+  assert.equal(task.options.region, 'china', 'the baked region did not reach the task');
+  assert.equal(task.language, 'zh-CN', 'the baked language did not reach the task');
+  await context.close();
+});
+
+test('filling in the block at the top of the file locks the project details', async () => {
+  const url = dropInWith('filled', JSON.stringify({
+    name: 'FanTool',
+    repository: 'https://github.com/example/fantool',
+    mirror: 'https://gitcode.com/example/fantool/',
+    issue_tracker: 'https://github.com/example/fantool/issues',
+  }, null, 2));
+  const { page, context, consoleErrors } = await open(url);
+
+  const visible = await page.evaluate(() =>
+    [...document.querySelectorAll('input,textarea,select')]
+      .filter((el) => el.checkVisibility())
+      .map((el) => el.id));
+  assert.deepEqual(visible, ['summary'], `unexpected inputs on first view: ${visible.join(', ')}`);
+  assert.ok((await page.content()).includes('FanTool'));
+  assert.equal(await page.locator('#configNote').isVisible(), false, 'a valid block produced a warning');
+
+  const task = await generate(page, { summary: 'the import button does nothing' });
+  assert.equal(task.project.name, 'FanTool');
+  assert.equal(task.project.repository, 'https://github.com/example/fantool');
+  assert.equal(task.project.issue_tracker, 'https://github.com/example/fantool/issues');
+  assert.deepEqual(task.project.mirrors, [{ url: 'https://gitcode.com/example/fantool' }]);
+  assert.deepEqual(consoleErrors, [], consoleErrors.join(' | '));
+  await context.close();
+});
+
+test('the block at the top of the file cannot widen anything', async () => {
+  // Whoever edits that block can already edit the whole file, so this is not a defence
+  // against them. It is a defence against the block growing into a second, sloppier
+  // profile format — the drift that turned a maintainer's `deny` into an `ask` in 0.1.x.
+  const url = dropInWith('hostile', JSON.stringify({
+    name: 'FanTool',
+    repository: 'https://github.com/example/fantool',
+    mirror: 'http://insecure.example.com/fantool',
+    policy_overrides: { allow_delete_files: 'allow', allow_run_repository_scripts: 'allow' },
+    policy: { allow_network_egress_of_local_data: 'allow' },
+    autonomy: 'auto-safe',
+    budget_profile: 'deep',
+    region: 'global',
+  }, null, 2));
+  const { page, context } = await open(url);
+  const task = await generate(page, { summary: 'the import button does nothing' });
+
+  assert.equal(task.policy.allow_delete_files, 'deny');
+  assert.equal(task.policy.allow_network_egress_of_local_data, 'deny');
+  assert.equal(task.policy.allow_run_repository_scripts, 'ask');
+  assert.equal(task.options.autonomy, 'guided', 'the block set the autonomy level');
+  assert.equal(task.options.budget_profile, 'standard', 'the block set the budget');
+  assert.equal(task.options.region, 'china', 'the block overrode the region the page was built with');
+  assert.equal(task.project.mirrors, undefined, 'a plaintext mirror was accepted');
+
+  // A rejected value is reported rather than silently dropped, or the developer ships a
+  // page they believe is configured and never finds out otherwise.
+  assert.equal(await page.locator('#configNote').isVisible(), true, 'the bad mirror was dropped silently');
+  await context.close();
+});
+
+test('a broken block falls back to asking, and says so', async () => {
+  const url = dropInWith('broken', '{ "name": "FanTool", }');
+  const { page, context } = await open(url);
+  assert.equal(await page.locator('#configNote').isVisible(), true, 'no warning about the unreadable block');
+  assert.equal(await page.locator('#projectName').isVisible(), true, 'the page became a dead end');
+
+  await page.fill('#projectName', 'FanTool');
+  const task = await generate(page, { summary: 'the import button does nothing' });
+  assert.equal(task.project.name, 'FanTool');
   await context.close();
 });

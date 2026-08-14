@@ -5,6 +5,22 @@ The package version and the protocol version move independently; protocol change
 
 ## [Unreleased]
 
+### Added — a package a developer can ship without adapting anything
+
+Every route into this project so far assumed the maintainer would run something. Two new
+release assets assume nothing: download, unzip, ship the folder with your software.
+
+- **`repro-agent-user-zh-CN-<version>.zip`** and **`repro-agent-user-en-<version>.zip`**, each holding the offline page, a readme for the user in one language, and a readme for the developer. The `zh-CN` page is built with `region: china`, so source access tries GitCode and Gitee before GitHub.
+- **A `repro-project` block at the top of every page**, four values a developer may fill in with a text editor. Filled, the page stops asking the user which software broke and the assistant knows where to read the source; empty, the page asks in plain language and everything else still works. It can set the project's name, repository, one mirror and the issue tracker — and nothing else. Policy, budget, autonomy and region are not readable from it, non-`https` addresses are rejected, and a block that cannot be parsed produces a visible note instead of a silent fallback.
+- Pages built by `repro-agent build` no longer show the mirror, issue-tracker, source-route, budget and assistant fields. Those are a maintainer's vocabulary; the hosted page keeps them, because whoever opens that is filing on behalf of a project they do not own.
+- The archives are written by `tools/build-packages.mjs` rather than shelled out to `zip`: entry names are flagged UTF-8 so Chinese filenames survive Windows Explorer, and the timestamps are fixed so a commit always produces the same bytes.
+
+The single bilingual `repro-agent-user-<version>.zip` from 0.2.0 is replaced by the two above.
+
+### Fixed
+
+- **`repro-agent build --region china` without a profile still emitted `global`.** The page's three technical selects were read straight from the DOM but never seeded from the embedded defaults, so they sat on their first `<option>` no matter what the maintainer had asked for. Same shape as the 0.2.0 drift bug, one layer down. Budget and assistant host were affected identically.
+
 Planned, roughly in order:
 
 - **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.

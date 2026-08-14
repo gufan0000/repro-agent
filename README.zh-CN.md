@@ -108,6 +108,37 @@ curl 的有效安全报告率从大约六分之一掉到了[二十分之一乃�
 
 ## 给维护者：把它随项目一起发出去
 
+### 两分钟版：下载，原样发出去
+
+不装任何东西、不写任何配置，它也能用。挑一个你的用户所在的网络环境，把整个文件夹放进你
+本来就在分发的地方就行——安装包里、压缩包里、下载页上都可以。
+
+| 下载 | 适用 | 里面有 |
+|---|---|---|
+| [`repro-agent-user-zh-CN-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 中国大陆用户 | `开始诊断.html` · `使用说明.txt` · `开发者须知.txt` |
+| [`repro-agent-user-en-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 其他地区 | `Start diagnosis.html` · `README.txt` · `FOR-DEVELOPERS.txt` |
+
+两者的差别不只是说明书的语言：`zh-CN` 版会先试 GitCode 和 Gitee 再试 GitHub，这一条决定了
+助手是能读到你的源码，还是只能回一句「连不上」。两个版本都不会把镜像、预算、源码路线这些
+字段摆在用户面前——那是你的词汇，不是他们的。
+
+原样分发时，页面会问用户「哪个软件出问题了」。用文本编辑器打开 HTML，把最顶上的
+`repro-project` 配置块填了，它就不再问：
+
+```jsonc
+{
+  "name": "FanTool",
+  "repository": "https://github.com/you/fantool",
+  "mirror": "https://gitcode.com/you/fantool",
+  "issue_tracker": "https://github.com/you/fantool/issues"
+}
+```
+
+这个块只能设置这四项。它无法放宽任何一条策略、无法调高预算、也无法改变权限模式；地址写错
+了页面会当场提示，不会静默失效。
+
+### 完整版：一个懂你项目的页面
+
 ```bash
 npx repro-agent init          # 生成 .repro/project.json
 ```

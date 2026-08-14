@@ -28,7 +28,10 @@ export function embedProfile(html: string, profile: ProjectProfile | undefined, 
   if (start === -1 || end === -1) {
     throw new Error('web/index.html is missing the REPRO:PROFILE markers');
   }
-  const payload = JSON.stringify({ profile: profile ?? null, defaults }).replace(
+  // Anything this command produces is meant to be handed to a product's own users, so the
+  // page drops the maintainer-facing fields. The hosted page has no `audience` and keeps
+  // them, because whoever opens it is filing on behalf of a project they do not own.
+  const payload = JSON.stringify({ profile: profile ?? null, defaults, audience: 'user' }).replace(
     /[<\u2028\u2029]/g,
     (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`,
   );

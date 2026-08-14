@@ -5,10 +5,36 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Repro Agent</title>
+
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     FOR THE DEVELOPER SHIPPING THIS FILE · 分发这个文件的开发者请看这里
+
+     Optional. Ship this file exactly as it is and it still works — it will simply
+     ask the user which software broke. Fill in the four values below and it stops
+     asking, and the assistant knows where to read your source.
+
+     可以完全不改，直接随你的软件一起分发。不填的话，页面会问用户是哪个软件出了问题；
+     填了之后就不再问，助手也知道该去哪里读你的源码。
+
+     Only these four keys are read, and nothing here can widen what the assistant is
+     allowed to do on the user's machine. Every URL must start with https://.
+     只会读这四个键。这里的任何内容都无法放宽助手在用户机器上的权限。地址必须是 https:// 开头。
+     ══════════════════════════════════════════════════════════════════════════════ -->
+<script type="application/json" id="repro-project">
+{
+  "name": "",
+  "repository": "",
+  "mirror": "",
+  "issue_tracker": ""
+}
+</script>
 <style>
 :root{--bg:#f5f7fb;--panel:#fff;--text:#141b2d;--muted:#5d6b82;--line:#dfe5ee;--soft:#f0f4f9;--accent:#2f5fe0;--accent2:#1e3fa8;--ok:#0f7a5a;--warn:#8a5a00;--danger:#b42318;--shadow:0 10px 32px rgba(24,40,72,.09)}
 @media (prefers-color-scheme:dark){:root{--bg:#0e131c;--panel:#151c28;--text:#e6ecf6;--muted:#93a1b8;--line:#26303f;--soft:#1b2432;--accent:#6f95ff;--accent2:#8fadff;--ok:#4fd1a5;--warn:#e0aa4a;--danger:#ff8b80;--shadow:0 10px 32px rgba(0,0,0,.35)}}
 *{box-sizing:border-box}
+/* Several blocks below set `display`, which silently beats the `hidden` attribute. Without
+   this the page opens with an empty white card above the first question. */
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
 .wrap{max-width:760px;margin:auto;padding:0 16px 64px}
 header{background:linear-gradient(135deg,#132a63,#2f5fe0);color:#fff;padding:24px 0 22px;margin-bottom:18px}
@@ -93,15 +119,20 @@ footer{color:var(--muted);font-size:12.5px;text-align:center;padding:6px 16px 0}
     <span class="badge" id="projectCardBadge"></span>
   </div>
 
+  <div class="note warn" id="configNote" hidden></div>
+
   <div id="errors" role="alert"></div>
 
-  <!-- Helper mode: no maintainer profile, so the project has to be identified. -->
+  <!-- Shown whenever the project is not already known: either a helper filling this in for
+       an arbitrary repository, or a shipped page whose developer left the block above empty. -->
   <div class="card" id="secProject" hidden>
     <h2 id="t-projTitle"></h2>
     <p class="sub" id="t-projSub"></p>
-    <label for="repo" id="l-repo"></label>
-    <input id="repo" type="url" placeholder="https://github.com/owner/repo" autocomplete="off">
-    <p class="hint" id="t-repoHint"></p>
+    <div id="repoWrap">
+      <label for="repo" id="l-repo"></label>
+      <input id="repo" type="url" placeholder="https://github.com/owner/repo" autocomplete="off">
+      <p class="hint" id="t-repoHint"></p>
+    </div>
     <label for="projectName" id="l-projectName"></label>
     <input id="projectName" type="text" autocomplete="off">
   </div>
@@ -198,7 +229,54 @@ const EMBEDDED = { profile: null, defaults: {} };
 const Core = globalThis.ReproCore;
 const profile = EMBEDDED.profile;
 const defaults = EMBEDDED.defaults || {};
+
+/**
+ * Project identity a developer may type into the block at the top of this file.
+ *
+ * That block is deliberately the only thing it can set. Policy, budget and autonomy are
+ * not readable from it: a page shipped inside somebody's installer must never be able to
+ * widen what the assistant may do on the machine it lands on. 0.2.0 is the reminder of
+ * what a second, more permissive path into the builder costs.
+ */
+function readShippedProject() {
+  const blank = { name: '', repository: '', mirror: '', issue_tracker: '', invalid: '' };
+  const el = document.getElementById('repro-project');
+  if (!el) return blank;
+  let raw;
+  try {
+    raw = JSON.parse(el.textContent);
+  } catch (e) {
+    return Object.assign({}, blank, { invalid: true });
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return Object.assign({}, blank, { invalid: true });
+  }
+  const out = Object.assign({}, blank);
+  const text = (v) => (typeof v === 'string' ? v.trim().slice(0, 300) : '');
+  out.name = text(raw.name);
+  for (const key of ['repository', 'mirror', 'issue_tracker']) {
+    const value = text(raw[key]);
+    if (!value) continue;
+    // http:// and file paths are rejected rather than passed through: the assistant is
+    // told to treat whatever it finds there as evidence, and evidence fetched over a
+    // channel anyone on the path can rewrite is not evidence.
+    if (!/^https:\/\/[^\s"'<>]+$/.test(value)) { out.invalid = true; continue; }
+    out[key] = value;
+  }
+  return out;
+}
+
+const shipped = readShippedProject();
 const hasProfile = !!profile;
+// A page built by `repro-agent build` is aimed at one product's own users. The hosted page
+// has no such author, so it keeps the technical fields a helper needs.
+const audience = EMBEDDED.audience === 'user' ? 'user' : 'helper';
+const hasShipped = !hasProfile && !!(shipped.name || shipped.repository);
+// Facts the person in front of the page is not the source of, and may not edit.
+const locked = hasProfile || hasShipped;
+// Only a helper is asked for a repository: a user of a shipped page has no way to know it,
+// and demanding one would turn a working page into a dead end.
+const askRepo = !locked && audience === 'helper';
 
 const HOST_LABEL = {
   generic: 'AI assistant', workbuddy: 'WorkBuddy', 'claude-code': 'Claude Code',
@@ -250,12 +328,17 @@ const I18N = {
     title: 'Repro Agent',
     taglineProfile: (n) => `Something wrong with ${n}? Describe it in one sentence — the technical details are already set up for you.`,
     taglineHelper: 'Create a diagnostic task for an open-source project, so an AI assistant can investigate it on the machine where it broke.',
+    taglineUser: 'Something not working? Say what went wrong in one sentence — your AI assistant takes it from there, on this machine.',
     chip1: 'Runs entirely in this page', chip2: 'Nothing is uploaded', chip3: 'Leave anything you do not know blank',
     projectLocked: 'Project details are locked',
     projectWhy: 'Set by the maintainer of this project',
     projTitle: 'Which project?', projSub: 'Paste the repository address. Everything else is optional.',
     repo: 'Repository address', repoHint: 'GitHub, GitCode or Gitee. The project name is filled in from it.',
     projectName: 'Project name',
+    userProjTitle: 'Which software?', userProjSub: 'Just the name you know it by is enough.',
+    userProjectName: 'Name of the software that is misbehaving',
+    userProjectPlaceholder: 'e.g. FanTool',
+    configBad: 'This page was shipped with project details that could not be read, so it will ask you instead. Nothing else is affected. If you maintain this software: check the "repro-project" block at the top of this file — every address there has to start with https://.',
     s1Title: 'What is wrong?', s1Sub: 'Pick the closest option, then say it in your own words. Picking the wrong one is fine.',
     category: 'Kind of problem', summary: 'In one sentence',
     summaryPlaceholder: 'e.g. clicking "Import" does nothing at all',
@@ -279,6 +362,7 @@ const I18N = {
     errTitle: 'This cannot be generated yet:',
     errSummary: 'Describe the problem in one sentence.',
     errRepo: 'A repository address is required so the assistant knows what to read.',
+    errProjectName: 'Enter the name of the software that is misbehaving.',
     errSchema: 'The task did not pass validation. This is a bug in this page — please report it.',
     footer: 'This page never connects to the internet. Even so, skim the file before you share it.',
   },
@@ -286,12 +370,17 @@ const I18N = {
     title: 'Repro Agent',
     taglineProfile: (n) => `${n} 出问题了？用一句话说清楚哪里不对，技术信息已经替你配置好了。`,
     taglineHelper: '为一个开源项目生成诊断任务，让 AI 助手到真正出问题的那台机器上去查。',
+    taglineUser: '软件出问题了？用一句话说清楚哪里不对，剩下的交给你电脑上的 AI 助手。',
     chip1: '全部在本页运行', chip2: '不上传任何内容', chip3: '不知道的地方留空就行',
     projectLocked: '项目信息已锁定',
     projectWhy: '由该项目的维护者设定',
     projTitle: '哪个项目？', projSub: '贴上仓库地址即可，其余都是选填。',
     repo: '仓库地址', repoHint: 'GitHub、GitCode 或 Gitee 都行。项目名会自动从地址里取。',
     projectName: '项目名称',
+    userProjTitle: '哪个软件出问题了？', userProjSub: '写你平时叫它的名字就行。',
+    userProjectName: '出问题的软件叫什么',
+    userProjectPlaceholder: '例如：FanTool',
+    configBad: '这个页面自带的项目信息读不出来，所以只能问你一下，其余功能不受影响。如果你是这个软件的开发者：请检查文件顶部的 repro-project 配置块，里面的地址必须以 https:// 开头。',
     s1Title: '哪里不对？', s1Sub: '先选最接近的一项，再用一句话描述。选不准也没关系。',
     category: '问题类型', summary: '用自己的话说一下',
     summaryPlaceholder: '例如：点「导入」以后完全没有反应',
@@ -315,6 +404,7 @@ const I18N = {
     errTitle: '还不能生成：',
     errSummary: '请用一句话描述问题。',
     errRepo: '需要仓库地址，助手才知道该读什么源码。',
+    errProjectName: '请填写出问题的软件名字。',
     errSchema: '生成的任务没有通过校验。这是本页面的缺陷，请反馈给我们。',
     footer: '本页面从不联网。即便如此，分享前也请自己扫一眼文件内容。',
   },
@@ -376,21 +466,34 @@ function render() {
   $('lang-zh').setAttribute('aria-pressed', String(lang === 'zh-CN'));
 
   setText('t-title', t.title);
-  setText('t-tagline', hasProfile ? t.taglineProfile(profile.project.name) : t.taglineHelper);
+  setText('t-tagline', locked ? t.taglineProfile(lockedName())
+    : audience === 'user' ? t.taglineUser : t.taglineHelper);
   setText('t-chip1', t.chip1); setText('t-chip2', t.chip2); setText('t-chip3', t.chip3);
 
-  if (hasProfile) {
+  if (shipped.invalid) {
+    $('configNote').hidden = false;
+    setText('configNote', t.configBad);
+  }
+
+  if (locked) {
     $('projectCard').hidden = false;
-    setText('projectCardName', profile.project.name);
+    setText('projectCardName', lockedName());
     setText('projectCardWhy', t.projectWhy);
     setText('projectCardBadge', t.projectLocked);
   } else {
     $('secProject').hidden = false;
-    setText('t-projTitle', t.projTitle); setText('t-projSub', t.projSub);
+    // A helper is identifying somebody else's repository; a user of a shipped page is
+    // naming the program in front of them. Same field, two very different questions.
+    setText('t-projTitle', askRepo ? t.projTitle : t.userProjTitle);
+    setText('t-projSub', askRepo ? t.projSub : t.userProjSub);
     setText('l-repo', t.repo); setText('t-repoHint', t.repoHint);
-    setText('l-projectName', t.projectName);
-    $('advancedWrap').hidden = false;
+    setText('l-projectName', askRepo ? t.projectName : t.userProjectName);
+    $('projectName').placeholder = askRepo ? '' : t.userProjectPlaceholder;
+    $('repoWrap').hidden = !askRepo;
   }
+  // Mirrors, budgets and source routes are a maintainer's vocabulary. They stay out of a
+  // page that was shipped to somebody who just wants their software to work.
+  $('advancedWrap').hidden = hasProfile || audience === 'user';
 
   setText('t-s1Title', t.s1Title); setText('t-s1Sub', t.s1Sub);
   setText('l-category', t.category); setText('l-summary', t.summary);
@@ -460,7 +563,8 @@ function build() {
   const problems = [];
   const summary = val('summary');
   if (!summary) problems.push(t.errSummary);
-  if (!hasProfile && !val('repo')) problems.push(t.errRepo);
+  if (askRepo && !val('repo')) problems.push(t.errRepo);
+  if (!locked && !askRepo && !val('projectName')) problems.push(t.errProjectName);
   if (problems.length) { showErrors(problems); return null; }
 
   const categoryLabel = answers.category ? CATEGORY_TEXT[lang][answers.category] : '';
@@ -484,15 +588,28 @@ function build() {
   };
 
   // With a maintainer profile, every project fact comes from it — the page has no editable
-  // field for any of them. Without one, whoever is filling this in *is* the source.
+  // field for any of them. Without one the facts come from whoever supplied them: the
+  // developer who filled in the block at the top of this file, or failing that the person
+  // in front of the page.
   if (!hasProfile) {
-    input.project = {
-      name: val('projectName') || repoName(val('repo')) || 'Unknown project',
-      repository: val('repo'),
-      version: val('version'),
-      issue_tracker: val('issues'),
-      mirrors: val('mirror') ? [{ url: val('mirror').replace(/\/$/, '') }] : undefined,
-    };
+    input.project = hasShipped
+      ? {
+          name: shipped.name || repoName(shipped.repository) || 'Unknown project',
+          repository: shipped.repository,
+          version: val('version'),
+          issue_tracker: shipped.issue_tracker,
+          mirrors: shipped.mirror ? [{ url: shipped.mirror.replace(/\/$/, '') }] : undefined,
+        }
+      : {
+          name: val('projectName') || repoName(val('repo')) || 'Unknown project',
+          repository: val('repo'),
+          version: val('version'),
+          issue_tracker: val('issues'),
+          mirrors: val('mirror') ? [{ url: val('mirror').replace(/\/$/, '') }] : undefined,
+        };
+    // The three selects are seeded from the embedded defaults at startup, so reading them
+    // is correct whether or not they are on screen. They used to be read raw, which meant
+    // `repro-agent build --region china` without a profile still emitted `global`.
     input.region = val('region');
     input.budgetProfile = val('budget');
     input.agentHost = val('host');
@@ -518,6 +635,12 @@ function repoName(url) {
   return m ? m[1] : '';
 }
 
+/** The project name the user is shown and cannot change. */
+function lockedName() {
+  if (hasProfile) return profile.project.name;
+  return shipped.name || repoName(shipped.repository) || 'Unknown project';
+}
+
 function showResult() {
   const t = I18N[lang];
   $('result').style.display = 'block';
@@ -533,7 +656,7 @@ function showResult() {
 }
 
 function download() {
-  const name = hasProfile ? `${slug(profile.project.name)}-REPRO_TASK.md` : 'REPRO_TASK.md';
+  const name = locked ? `${slug(lockedName())}-REPRO_TASK.md` : 'REPRO_TASK.md';
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -571,6 +694,18 @@ $('btnCopy').addEventListener('click', () => {
 $('repo') && $('repo').addEventListener('input', () => {
   if (!$('projectName').value) $('projectName').value = repoName(val('repo'));
 });
+
+// Seed the technical selects from whatever the page was built with, so a hidden select
+// still carries the maintainer's choice instead of the first <option>.
+setSelect('region', defaults.region, 'global');
+setSelect('budget', defaults.budget_profile, 'standard');
+setSelect('host', defaults.agent_host, 'generic');
+
+function setSelect(id, value, fallback) {
+  const el = $(id);
+  const wanted = String(value || fallback);
+  el.value = [].some.call(el.options, (o) => o.value === wanted) ? wanted : fallback;
+}
 
 // The reader's own browser language wins — this page is for them, not for the maintainer.
 lang = String(navigator.language || '').toLowerCase().startsWith('zh') ? 'zh-CN'
