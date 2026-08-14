@@ -115,13 +115,19 @@ are on and put the folder wherever you already put things people download:
 
 | Download | For | Contains |
 |---|---|---|
-| [`repro-agent-user-zh-CN-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Users in mainland China | `开始诊断.html` · `使用说明.txt` · `开发者须知.txt` |
-| [`repro-agent-user-en-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Everyone else | `Start diagnosis.html` · `README.txt` · `FOR-DEVELOPERS.txt` |
+| [`repro-agent-user-zh-CN-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Users in mainland China | the page · a three-step card · an [illustrated walkthrough](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html) · notes for you |
+| [`repro-agent-user-en-<version>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | Everyone else | the page · a three-step card · a written walkthrough · notes for you |
 
 They differ in more than the readme's language: the `zh-CN` page tries GitCode and Gitee
 before GitHub, which is the difference between the assistant reading your source and
 telling the user it cannot reach it. Both hide the mirror, budget and source-route fields —
 those are your vocabulary, not your users'.
+
+The Chinese package carries a screenshot-by-screenshot walkthrough, from installing an
+assistant to reading the report — [have a look](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html).
+It uses WorkBuddy as the worked example and says up front that any assistant which can read
+local files works the same way. The English package carries the same walkthrough in words,
+because a Chinese UI in screenshots teaches an English reader nothing.
 
 Shipped as-is, the page asks the user which software broke. Open the HTML in a text editor
 and fill in the `repro-project` block at the very top, and it stops asking:

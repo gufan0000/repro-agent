@@ -46,7 +46,7 @@ jobs:
         run: |
           npm run build
           node tools/build-adapters.mjs
-          git diff --exit-code -- adapters/ web/index.html || {
+          git diff --exit-code -- adapters/ web/index.html web/tutorial.zh-CN.html || {
             echo "::error::generated files are stale — run 'npm run build && node tools/build-adapters.mjs' and commit"
             exit 1
           }

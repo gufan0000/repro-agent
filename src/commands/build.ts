@@ -74,10 +74,18 @@ export function cmdBuild(args: Args): number {
   writeFileSync(join(outDir, 'repro-agent', 'SKILL.md'), renderWorkbuddySkill(context), 'utf8');
   writeFileSync(join(outDir, 'README.md'), kitReadme(htmlName, language, profile), 'utf8');
 
+  // The walkthrough is written in Chinese around a Chinese product's screenshots, so it goes
+  // out with Chinese kits and stays out of the others rather than confusing their users.
+  const tutorial = language === 'zh-CN' ? '图文教程.html' : null;
+  if (tutorial) {
+    writeFileSync(join(outDir, tutorial), readFileSync(assetPath('web', 'tutorial.zh-CN.html'), 'utf8'), 'utf8');
+  }
+
   process.stdout.write(
     [
       `Built support kit in ${outDir}`,
       `  ${htmlName}                — give this to users; opens offline, no install`,
+      ...(tutorial ? [`  ${tutorial}              — 图文操作教程，随页面一起发给用户`] : []),
       `  REPRO_AGENTS.md        — drop into a repo as AGENTS.md, or hand to any agent`,
       `  repro-agent/SKILL.md  — WorkBuddy / OpenClaw skill package (pure markdown)`,
       `  README.md                  — what to tell your users`,
@@ -102,6 +110,7 @@ function kitReadme(htmlName: string, language: string, profile: ProjectProfile |
       '## 给用户',
       '',
       `1. 下载 \`${htmlName}\`，双击用浏览器打开（不联网，不上传任何内容）。`,
+      '   不知道每一步长什么样？让他们打开同一个文件夹里的 `图文教程.html`。',
       '2. 填写遇到的问题，点「生成」，下载得到的 `.md` 文件。',
       '3. 把这个 `.md` 拖进你的 AI 助手，发送「开始」。',
       '4. 助手会先诊断、尝试修复；修不好会生成一份 `BUG_REPORT.md`，把它贴到 issue 里即可。',

@@ -5,6 +5,10 @@ The package version and the protocol version move independently; protocol change
 
 ## [Unreleased]
 
+### Added
+
+- **An illustrated walkthrough in the Chinese package** — `图文教程.html`, eight real screenshots from installing an assistant through to handing it the task file, plus what happens after and the five questions people actually ask. WorkBuddy is the worked example and the page says so in its first sentence; every step applies to any assistant that can read local files. Also published at [`web/tutorial.zh-CN.html`](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html), generated from `docs/tutorial/` and covered by the same drift check as the diagnostic page. Screenshots are inlined as data URIs — a tutorial that has to fetch its own images is broken exactly when it is needed. The English package carries the same walkthrough as `HOW-TO.txt`, in words: a Chinese UI in screenshots teaches an English reader nothing.
+
 Planned, roughly in order:
 
 - **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.

@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundle } from './bundle-core.mjs';
+import { renderTutorial } from './build-tutorial.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
@@ -42,21 +43,28 @@ if (/<(script|img|link|iframe)\b[^>]*\b(src|href)\s*=\s*["']https?:/i.test(next)
   throw new Error('refusing to build: the page would load an external resource');
 }
 
-const target = join(root, 'web', 'index.html');
-const current = (() => {
-  try {
-    return readFileSync(target, 'utf8');
-  } catch {
-    return null;
-  }
-})();
+// The illustrated walkthrough is generated the same way and checked for drift the same way,
+// so a screenshot swapped in `docs/tutorial/` cannot get left out of the shipped package.
+emit('web/index.html', next);
+emit('web/tutorial.zh-CN.html', renderTutorial());
 
-if (current === next) {
-  console.log('web/index.html already up to date');
-} else if (check) {
-  console.error("web/index.html is stale — run 'npm run build' and commit the result");
-  process.exit(1);
-} else {
-  writeFileSync(target, next);
-  console.log(`wrote web/index.html (${next.length.toLocaleString()} bytes)`);
+function emit(relative, contents) {
+  const target = join(root, relative);
+  const current = (() => {
+    try {
+      return readFileSync(target, 'utf8');
+    } catch {
+      return null;
+    }
+  })();
+
+  if (current === contents) {
+    console.log(`${relative} already up to date`);
+  } else if (check) {
+    console.error(`${relative} is stale — run 'npm run build' and commit the result`);
+    process.exit(1);
+  } else {
+    writeFileSync(target, contents);
+    console.log(`wrote ${relative} (${contents.length.toLocaleString()} chars)`);
+  }
 }

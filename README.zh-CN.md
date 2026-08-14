@@ -115,12 +115,16 @@ curl 的有效安全报告率从大约六分之一掉到了[二十分之一乃�
 
 | 下载 | 适用 | 里面有 |
 |---|---|---|
-| [`repro-agent-user-zh-CN-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 中国大陆用户 | `开始诊断.html` · `使用说明.txt` · `开发者须知.txt` |
-| [`repro-agent-user-en-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 其他地区 | `Start diagnosis.html` · `README.txt` · `FOR-DEVELOPERS.txt` |
+| [`repro-agent-user-zh-CN-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 中国大陆用户 | 页面 · 三步速查卡 · [图文教程](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html) · 开发者须知 |
+| [`repro-agent-user-en-<版本>.zip`](https://github.com/gufan0000/repro-agent/releases/latest) | 其他地区 | 页面 · 三步速查卡 · 纯文字教程 · 开发者须知 |
 
 两者的差别不只是说明书的语言：`zh-CN` 版会先试 GitCode 和 Gitee 再试 GitHub，这一条决定了
 助手是能读到你的源码，还是只能回一句「连不上」。两个版本都不会把镜像、预算、源码路线这些
 字段摆在用户面前——那是你的词汇，不是他们的。
+
+中文包里带一份[图文教程](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html)，从装助手一路到看懂报告，每步都有截图。它以
+WorkBuddy 为例，开头就写明任何能读本机文件的助手都一样。英文包里是同一份教程的纯文字版
+——把中文界面的截图摆给英文读者，教不会任何东西。
 
 原样分发时，页面会问用户「哪个软件出问题了」。用文本编辑器打开 HTML，把最顶上的
 `repro-project` 配置块填了，它就不再问：

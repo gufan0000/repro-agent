@@ -10,6 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { inflateRawSync } from 'node:zlib';
 import { packages, zip } from '../tools/build-packages.mjs';
+import { expectedShots } from '../tools/build-tutorial.mjs';
 
 const built = packages();
 const byId = Object.fromEntries(built.map((p) => [p.variant.id, p]));
@@ -40,13 +41,34 @@ function unzip(buffer) {
   return out;
 }
 
-test('both packages exist and hold a page, a user readme and a developer readme', () => {
+test('both packages hold a page, a quick card, a walkthrough and a developer readme', () => {
   assert.deepEqual(built.map((p) => p.variant.id), ['zh-CN', 'en']);
   for (const { name, entries } of built) {
     assert.match(name, /^repro-agent-user-(zh-CN|en)-\d+\.\d+\.\d+\.zip$/);
-    assert.equal(entries.length, 3, `${name} should hold exactly three files`);
-    assert.equal(entries.filter(([f]) => f.endsWith('.html')).length, 1);
+    assert.equal(entries.length, 4, `${name} should hold exactly four files`);
   }
+});
+
+test('each quick card points at the walkthrough that is actually in the package', () => {
+  for (const { entries } of built) {
+    const names = entries.map(([n]) => n);
+    const card = entries[1][1];
+    const walkthrough = names[2];
+    assert.ok(card.includes(walkthrough), `the quick card does not mention ${walkthrough}`);
+  }
+});
+
+test('the illustrated walkthrough carries its screenshots, and only in the china package', () => {
+  const zh = byId['zh-CN'].entries.find(([n]) => n === '图文教程.html')[1];
+  const shots = zh.match(/data:image\/png;base64,/g) || [];
+  assert.equal(shots.length, expectedShots().length, 'a screenshot went missing from the tutorial');
+  // A tutorial that fetches its own images is a tutorial with holes in it the first time
+  // somebody opens it on a machine with no network, which is exactly when they need it.
+  for (const forbidden of ['<img src="http', 'fetch(', '<script']) {
+    assert.equal(zh.includes(forbidden), false, `the tutorial contains ${forbidden}`);
+  }
+  assert.equal(byId.en.entries.some(([n]) => n.endsWith('.html') && n !== 'Start diagnosis.html'), false,
+    'the English package should not ship the Chinese-UI screenshots');
 });
 
 test('the archive round-trips, with its filenames marked as UTF-8', () => {

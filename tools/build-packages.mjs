@@ -31,13 +31,15 @@ const VARIANTS = [
     // network where github.com times out.
     defaults: { language: 'zh-CN', region: 'china', autonomy: 'guided', budget_profile: 'standard', agent_host: 'generic' },
     html: '开始诊断.html',
-    files: { '使用说明.txt': userReadmeZh, '开发者须知.txt': devReadmeZh },
+    // The illustrated walkthrough only goes in this package: the screenshots are of a
+    // Chinese product's Chinese UI, and they would leave an English reader worse off.
+    files: { '使用说明.txt': userReadmeZh, '图文教程.html': tutorialZh, '开发者须知.txt': devReadmeZh },
   },
   {
     id: 'en',
     defaults: { language: 'en', region: 'global', autonomy: 'guided', budget_profile: 'standard', agent_host: 'generic' },
     html: 'Start diagnosis.html',
-    files: { 'README.txt': userReadmeEn, 'FOR-DEVELOPERS.txt': devReadmeEn },
+    files: { 'README.txt': userReadmeEn, 'HOW-TO.txt': walkthroughEn, 'FOR-DEVELOPERS.txt': devReadmeEn },
   },
 ];
 
@@ -63,6 +65,76 @@ function main() {
 
 // ---------------------------------------------------------------------------- readme text
 
+function tutorialZh() {
+  return readFileSync(join(root, 'web', 'tutorial.zh-CN.html'), 'utf8');
+}
+
+/**
+ * The English walkthrough is text, not pictures.
+ *
+ * The screenshots that exist are of WorkBuddy, a Chinese product, and pasting a Chinese UI
+ * in front of somebody using Claude Code or Cursor teaches them nothing. The steps are the
+ * same for every assistant, so words carry them fine.
+ */
+function walkthroughEn(variant) {
+  return [
+    'The whole thing, step by step',
+    '=============================',
+    '',
+    'This works with any AI assistant that can read files on your computer — Claude Code,',
+    'Cursor, Codex, Cline, ChatGPT desktop, and others. The steps do not change.',
+    '',
+    'Before you start',
+    '----------------',
+    'You need an AI assistant installed and signed in. If the developer put an installer in',
+    'this folder, run it first: install it for your user only, keep the default location,',
+    'and sign in once. If you already use one, skip ahead.',
+    '',
+    '1. Describe the problem',
+    '-----------------------',
+    `Double-click "${variant.html}". Pick the closest kind of problem — getting it wrong`,
+    'costs nothing — then say what happened in one sentence, in your own words. Something',
+    'like "cannot install, says a component is missing" is plenty.',
+    '',
+    'How often, when it started, which system: answer "Not sure" if you do not know. It does',
+    'not make the result worse. You are not expected to find logs or version numbers.',
+    '',
+    'Leave the permission setting on "Ask me before every change". Then click Generate.',
+    '',
+    'That page never connects to the internet. What you type stays on this computer.',
+    '',
+    '2. Hand the file to your assistant',
+    '----------------------------------',
+    'It downloads a .md file, usually to your Downloads folder. Drag that file straight into',
+    "your assistant's input box. If you have a screenshot of the error, drag that in too.",
+    '',
+    '3. Send: start',
+    '---------------',
+    'One word. Leave the permission mode at its default — the file already tells the',
+    'assistant what it may and may not do.',
+    '',
+    'What happens next',
+    '-----------------',
+    'It looks before it touches. Logs, config, process state, and your software\'s source at',
+    'the version you actually have installed.',
+    '',
+    'Before changing anything it tells you the cause, the risk and where the backup went,',
+    'and waits for you.',
+    '',
+    'If it fixes the problem, it also tells you how to undo the fix.',
+    '',
+    'If it cannot, it writes BUG_REPORT.md: version, reproduction steps, logs, and the',
+    'explanations it already ruled out. Send that file to the developer as-is — keys,',
+    'tokens, email addresses and your home path have already been stripped out.',
+    '',
+    'If it starts guessing, or asks you to disable your antivirus or delete files, stop.',
+    'Deleting files, disabling security software, reading secrets and sending your data',
+    'anywhere are forbidden outright. An assistant doing any of those is not following the',
+    'rules it was given.',
+    '',
+  ].join('\r\n');
+}
+
 function userReadmeZh() {
   return [
     '出问题了？三步就好',
@@ -87,6 +159,10 @@ function userReadmeZh() {
     '· 删除文件、关闭安全软件、读取密码和密钥，都是被禁止的。',
     '· 报告会自动去掉密钥、邮箱和带你用户名的路径。',
     '· 生成的是纯文本文件，发出去之前你可以自己先看一眼。',
+    '',
+    '想看每一步长什么样？',
+    '--------------------',
+    '打开同一个文件夹里的「图文教程.html」，从装助手到拿到结果，每步都有截图。',
     '',
     '这套流程是开源的：https://github.com/gufan0000/repro-agent',
     '',
@@ -118,6 +194,11 @@ function userReadmeEn() {
     '* Deleting files, disabling security software and reading secrets are all forbidden.',
     '* The report has keys, tokens, email addresses and your home path stripped out.',
     '* It is a plain text file. Read it before you share it if you want to.',
+    '',
+    'Want the long version?',
+    '----------------------',
+    'HOW-TO.txt in this folder walks through every step, including what the assistant does',
+    'once you hand it the file.',
     '',
     'The protocol behind this is open source: https://github.com/gufan0000/repro-agent',
     '',
