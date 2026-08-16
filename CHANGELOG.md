@@ -7,6 +7,58 @@ The package version and the protocol version move independently; protocol change
 
 Planned, roughly in order:
 
+## [0.4.3] — 2026-08-16
+
+Protocol `1.0` unchanged as a contract. 0.4.1 fixed one reason an agent gives up on the
+source. Walking the same repository by hand turned up three more, each of which reaches the
+same dead end on its own.
+
+### Fixed — a version string is not a ref
+
+`project.version` is what the software reports about itself; a tag is what the repository
+calls that release. They are usually not the same string. On the repository from the report
+that prompted this, `3.3.1.0` returns **404** and `v3.3.1.0` returns 200. An agent that
+substitutes the version into the URL gets a 404 on its first attempt, and under 0.4.1 a 404
+still looked like a missing file rather than a wrong ref.
+
+- Phase B now resolves before it fetches: list the tags once, match with and without a
+  leading `v`, use what exists. A full or seven-character SHA works anywhere a tag does.
+- A **404 on one ref** and a **403 from the host's API** are named as things that are *not*
+  failed routes — a 404 means go back and resolve the ref, and the API's 60-requests-an-hour
+  anonymous limit does not apply to raw file fetches at all.
+
+### Fixed — the installed build may have no tag
+
+The version that was actually crashing in that report, `3.2.0.0`, was never tagged: the
+repository jumps from `v3.1.14.0` to `v3.3.0.0`. The protocol said "read **that** revision"
+and said nothing about the revision not existing, which leaves an agent with a rule it cannot
+follow and no sanctioned alternative.
+
+- If no tag matches, bracket it: read the nearest tag before and the nearest after, treat
+  what differs between them as unestablished for the user's build, and name both refs.
+- The report's revision column takes a range — `v3.1.14.0…v3.3.0.0` — and the summary has to
+  say the exact build was never published.
+
+### Fixed — finding a file meant guessing at it
+
+The chain named `raw.githubusercontent.com` for contents but offered only a per-directory
+HTML page for locating a path. `git/trees/<ref>?recursive=1` returns every file at a ref in
+one request — 2,096 of them on the repository in question — and is now what the chain says.
+
+### Fixed — an approval that was never requested, reported as a limitation
+
+The same report ends with *"no administrator privileges this session, contents not read"*
+about the crash dump it had itself named as the best remaining evidence — with
+`allow_admin_privileges` set to `ask`, not `deny`. Missing a capability was treated as a wall
+rather than as something to request, which is the clone bug in a different costume.
+
+- Phase C: a read-only check the policy lets you *request* is not a limitation. Ask once, in
+  plain language. If the user declines or is unreachable, say so and carry it into *what the
+  maintainer could check next*.
+
+These add about 1,600 characters to a rendered task, roughly 400 tokens — worth stating,
+because `frugal` exists for models that feel it.
+
 ## [0.4.2] — 2026-08-16
 
 ### Fixed — the checked-in adapters described the old protocol

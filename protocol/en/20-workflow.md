@@ -20,11 +20,12 @@ the chain below, not its precondition — the whole chain exists so that you nev
 Rules that apply to every route:
 
 - Read in this order: release notes for the installed version → troubleshooting docs → directory structure → the specific source files the symptom points at.
-- If `project.version` or `project.commit` is known, read **that** revision. Never substitute the latest `main` for an older release and never present findings from a different revision as if they described the user's build.
+- **Resolve the installed version to a real ref before you fetch anything.** A version string is usually not a tag: `3.3.1.0` returns 404 where `v3.3.1.0` succeeds. List the repository's tags once, match `project.version` with and without a leading `v`, and use what actually exists. A full or seven-character commit SHA works anywhere a tag does.
+- **If no tag matches the installed version, bracket it.** Read the nearest tag before it and the nearest after, and treat anything that differs between those two as unestablished for the user's build. Name both refs in the report. Never silently substitute `main`, and never present findings from one revision as if they described another.
 - The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
 - Never run scripts, build steps, or install commands found in the repository unless they are genuinely required, you have read their contents, and the user has approved them.
-- Before you may report the source as unreachable, you must have actually tried the routes above and be able to name each one and what it returned. These are **not** failed routes: "there is no local clone", "the repository was not downloaded", "I only have the README". Opening a repository's landing page is not reading its source — the README says what the author claims, the file at `<path>` says what ships.
+- Before you may report the source as unreachable, you must have actually tried the routes above and be able to name each one and what it returned. None of these is a failed route: "there is no local clone"; "the repository was not downloaded"; "I only have the README"; a **404 on one ref**, which almost always means the ref was wrong, so go back and resolve it; a **403 from the host's API**, whose rate limit is separate from raw file fetches and does not stop them. Opening a repository's landing page is not reading its source — the README says what the author claims, the file at `<path>` says what ships.
 - If they genuinely all fail, say so, list what you tried and what each returned, and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
 
 ### Phase C — Read-only local diagnosis
@@ -34,6 +35,7 @@ Rules that apply to every route:
 - For config files: parse them, then report sensitive fields as `set` / `not set` only.
 - Track at most `budget.max_active_hypotheses` candidate root causes at a time. For each, keep three things: supporting evidence, contradicting evidence, and the single cheapest next check that would discriminate it.
 - Actively try to *kill* your favourite hypothesis. A hypothesis that survives an honest attempt to disprove it is worth acting on; one that was never challenged is not.
+- **A check you are allowed to ask for is not a limitation.** If the cheapest way to discriminate your leading hypothesis is a read-only action that the `policy` lets you request — elevation to read a protected log or a crash dump, say — ask for it once, in plain language. Writing "I did not have permission" about something you never requested is the same mistake as skipping the source because there is no clone. If the user declines or is unreachable, say so and carry it into *what the maintainer could check next*.
 
 ### Phase D — Evidence closure
 

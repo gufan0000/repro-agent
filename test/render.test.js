@@ -113,6 +113,39 @@ test('every task tells the agent how to read one file over the web', () => {
   }
 });
 
+test('a version string is never assumed to be a ref', () => {
+  // `3.3.1.0` 404s on raw.githubusercontent.com where `v3.3.1.0` succeeds, and the crashing
+  // build in the report that prompted this had no tag at all. Both routes end at the same
+  // dead end — "source unreachable" — unless the agent is told to resolve and to bracket.
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const resolve = language === 'zh-CN' ? '版本号通常不是 tag' : 'A version string is usually not a tag';
+    const bracket = language === 'zh-CN' ? '就用前后两个 tag 夹' : 'bracket it';
+    assert.ok(body.includes(resolve), `${language}: nothing warns that a version is not a ref`);
+    assert.ok(body.includes(bracket), `${language}: no instruction for an untagged build`);
+    assert.ok(body.includes('/git/trees/'), `${language}: no way to list files at a ref`);
+  }
+});
+
+test('an http status is never mistaken for an unreachable source', () => {
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    assert.ok(body.includes('404'), `${language}: a 404 is not addressed`);
+    assert.ok(body.includes('403'), `${language}: an API rate limit is not addressed`);
+  }
+});
+
+test('an approval the policy allows is asked for, not recorded as a limitation', () => {
+  // Same shape as the clone bug: the agent hit a capability it did not have and treated it
+  // as a wall, when `allow_admin_privileges` was `ask` and the check it skipped was the one
+  // it had itself named as the best remaining evidence.
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const rule = language === 'zh-CN' ? '不叫「条件限制」' : 'is not a limitation';
+    assert.ok(body.includes(rule), `${language}: a requestable check can still be silently skipped`);
+  }
+});
+
 test('a missing clone is explicitly not an excuse for skipping the source', () => {
   for (const language of LANGUAGES) {
     const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
