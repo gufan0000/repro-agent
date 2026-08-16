@@ -113,21 +113,47 @@ test('every task tells the agent how to read one file over the web', () => {
   }
 });
 
-test('a version string is never assumed to be a ref', () => {
-  // `3.3.1.0` 404s on raw.githubusercontent.com where `v3.3.1.0` succeeds, and the crashing
-  // build in the report that prompted this had no tag at all. Both routes end at the same
-  // dead end — "source unreachable" — unless the agent is told to resolve and to bracket.
-  // Both regions: the first cut of this put the file listing in route-global only, so every
+test('the revision ladder has all three rungs and never dead-ends', () => {
+  // `3.3.1.0` 404s where `v3.3.1.0` succeeds, and the build that was actually crashing in
+  // the report behind this had no tag at all. An agent that can only read an exact match
+  // stops at the first of those and reports the source as unreachable.
+  // Both regions: the first cut of this put the lookup recipe in route-global only, so every
   // china task — and the whole zh-CN adapter, which is built as china — shipped without it.
+  const RUNGS = {
+    en: ['A version string is usually not a tag', '**Bracket.**', 'Default branch, labelled'],
+    'zh-CN': ['版本号通常不是 tag', '**夹逼。**', '默认分支，但要打标'],
+  };
   for (const language of LANGUAGES) {
     for (const region of ['global', 'china']) {
       const body = renderProtocol({ language, region, autonomy: 'guided' });
-      const resolve = language === 'zh-CN' ? '版本号通常不是 tag' : 'A version string is usually not a tag';
-      const bracket = language === 'zh-CN' ? '就用前后两个 tag 夹' : 'bracket it';
-      assert.ok(body.includes(resolve), `${language}/${region}: nothing warns that a version is not a ref`);
-      assert.ok(body.includes(bracket), `${language}/${region}: no instruction for an untagged build`);
+      for (const rung of RUNGS[language]) {
+        assert.ok(body.includes(rung), `${language}/${region}: missing rung — ${rung}`);
+      }
       assert.ok(body.includes('/git/trees/'), `${language}/${region}: no way to list files at a ref`);
+      // Every rung must beat reading nothing, or an agent will still pick nothing.
+      const beatsNothing = language === 'zh-CN' ? '每一级都好过什么都不读' : 'Every rung beats reading nothing';
+      assert.ok(body.includes(beatsNothing), `${language}/${region}: the ladder still permits giving up`);
     }
+  }
+});
+
+test('the source can be tied to this machine without knowing the revision', () => {
+  // The strongest citation available, and the protocol had no word for it: a literal seen in
+  // a local log that also appears in the source proves that code is in the running build.
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const crossCheck = language === 'zh-CN' ? '跟你取的是哪个版本无关' : 'whatever revision you fetched';
+    const absent = language === 'zh-CN' ? '找不到' : 'is **absent** from the source';
+    assert.ok(body.includes(crossCheck), `${language}: no way to confirm source against this machine`);
+    assert.ok(body.includes(absent), `${language}: a missing literal is not treated as a finding`);
+  }
+});
+
+test('reading only the default branch is not enough to modify the machine', () => {
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const gate = language === 'zh-CN' ? '足够写一份报告，不足以改动任何东西' : 'enough to write a report; it is not enough to change anything';
+    assert.ok(body.includes(gate), `${language}: Phase D lets an unconfirmed main read authorise a change`);
   }
 });
 

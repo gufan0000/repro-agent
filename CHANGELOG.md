@@ -12,6 +12,59 @@ Planned, roughly in order:
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
 - **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
+## [0.5.0] — 2026-08-16
+
+Protocol `1.0` unchanged as a contract. 0.4.1 through 0.4.4 kept patching individual reasons
+an agent gives up on the source. This replaces the rule they were all patching.
+
+### Changed — reading the source degrades instead of stopping
+
+The old rule was binary: read the installed revision, or read nothing. Everything since 0.4.1
+has been a patch on the "or read nothing" branch. Phase B now has a ladder, and **every rung
+beats reading nothing** — what the report owes the maintainer is not the exact build, but an
+honest label saying which rung was used.
+
+1. `project.commit`, or a tag matching `project.version` — trying the variants first, because
+   `3.3.1.0` may be tagged `v3.3.1.0`, `v3.3.1`, `3.3.1` or `release-3.3.1`.
+2. **Bracket** — no tag matches, but tags exist either side. What is identical in both is
+   established for the user's build; what differs is not.
+3. **Default branch, labelled** — no usable tags, or a bracket too wide to say anything. Read
+   `main` and mark every claim `read at main, not at the installed build`. An approximate
+   citation a maintainer can check beats an empty table that tells them nothing.
+
+### Added — tie the source to this machine, and the revision stops mattering
+
+The protocol had no word for the strongest citation available. Take an exact literal observed
+on the machine — a log line, an error message, a window title, a config key — and find it in
+the source. A string present in both places proves that code path is in the build the user is
+actually running, *whatever revision was fetched*. Where the installation ships the file
+itself — script, template, stylesheet, config, asset — diff it against the repository copy.
+
+A literal that is **absent** from the source is a finding too: it means a different build, so
+say so and go back a rung.
+
+This is not hypothetical. `service_log("service process priority raised to High")` appears in
+a log on the reporting machine and at `src/main.rs:106`; that pair settles a claim the report
+in question had filed as unverified, and it needs no tag at all. The report's revision column
+now takes such a pair, and it is the strongest row in the table.
+
+### Added — a `main` read cannot authorise touching the machine
+
+Phase D's first condition now says so explicitly: source read at the default branch, with
+nothing on this machine confirming that code is in the running build, is enough to write a
+report and not enough to change anything. Degrading how you *read* must not quietly degrade
+what you are allowed to *do*.
+
+### Fault tolerance elsewhere in the lookup
+
+- No tag list available — rate-limited, or a host with no API? You do not need one: a 200 on `raw…/<candidate-ref>/README.md` proves the ref exists.
+- Any other host works the same way; open one file in its web UI and the raw URL shape is visible.
+
+A rendered task is now about 23,000 characters, roughly 5,700 tokens — up about 20% across
+0.4.1–0.5.0. That is a real cost on a `frugal` budget and it is worth saying plainly. If it
+proves too much, the ladder is a candidate for varying by `budget_profile`, the way the region
+and autonomy blocks already do.
+
 ## [0.4.4] — 2026-08-16
 
 Protocol `1.0` unchanged as a contract. 0.4.1 fixed one reason an agent gives up on the

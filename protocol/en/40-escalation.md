@@ -48,9 +48,14 @@ Only facts you verified yourself: process running or not, port bound or not, fil
 |---|---|---|
 | … | `path/file.ext:120-134` | `v1.2.3` / `abc1234` |
 
-If the installed version had no tag of its own and you bracketed it, put both refs in the
-revision column — `v3.1.14.0…v3.3.0.0` — and say in the summary that the exact build was not
-published, so the maintainer knows how much of the reading applies to it.
+The revision column has to say which rung of Phase B you were on, so the maintainer knows how
+far to trust each row: an exact ref (`v1.2.3`), a bracket (`v3.1.14.0…v3.3.0.0`, and say in
+the summary that the exact build was never published), or the default branch
+(`main — not the installed build`).
+
+Where a literal you observed on this machine also appears in the source, add it — it is the
+strongest row in the table, because it holds whichever revision you read:
+`"service process priority raised to High" — in service.log here and at src/main.rs:106`.
 
 If you read no source at all, do not simply assert that it was unreachable. Replace the table
 with the routes you actually tried and what each one returned, so the maintainer can tell the
