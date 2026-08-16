@@ -72,7 +72,8 @@ Rules that apply to every route:
   2. **Bracket.** No tag matches, but tags exist either side. Read the nearest before and the nearest after. What is identical in both is established for the user's build; what differs is not.
   3. **Default branch, labelled.** No usable tags, or the bracket is too wide to say anything. Read `main`/`master` and mark every claim from it `read at main, not at the installed build`. This is the last rung, not a shortcut — but an approximate citation a maintainer can check beats an empty table that tells them nothing.
 - **Then prove the correspondence on this machine, which is worth more than any rung above.** Take an exact literal you observed here — a log line, an error message, a window title, a config key — and search for it in the source you just read. A string that appears in both places establishes that this code path is in the build the user is actually running, whatever revision you fetched. Cite that: it is stronger evidence than a tag. If the installation ships the file itself — a script, template, stylesheet, config or asset — diff it against the repository copy directly. And if a literal you can see on this machine is **absent** from the source, that is a finding too: you are reading a different build from the one that produced it, so say so and go back a rung.
-- The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
+- **Source on this machine is cited as local, never as a revision.** It is often already here — a checkout, an unpacked package, an app that ships readable code. Read it there: it is faster, and it is by definition the build the user is running. But a file on disk carries no revision label of its own. Cite the local path, and in the revision column put what you actually established: a commit you verified, or `local copy — not compared to any published revision`. Writing `main`, or a tag, for a file you read off this disk claims a comparison you did not make.
+- **Name only what you retrieved.** A ref, a URL, or a phrase like "matches the repository" belongs in the report only if you actually fetched that thing during this session. If you did not, say so plainly. An honest `not compared` costs the maintainer nothing; a citation that turns out to be invented costs them their trust in every other line of the report.
 - Never present findings from one revision as if they described another; the label is what makes reading an approximate one honest instead of misleading.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
 - Never run scripts, build steps, or install commands found in the repository unless they are genuinely required, you have read their contents, and the user has approved them.
@@ -211,8 +212,14 @@ Only facts you verified yourself: process running or not, port bound or not, fil
 
 The revision column has to say which rung of Phase B you were on, so the maintainer knows how
 far to trust each row: an exact ref (`v1.2.3`), a bracket (`v3.1.14.0…v3.3.0.0`, and say in
-the summary that the exact build was never published), or the default branch
-(`main — not the installed build`).
+the summary that the exact build was never published), the default branch
+(`main — not the installed build`), or a file you read off this machine
+(`local copy — not compared to any published revision`).
+
+Only name a ref, a URL, or a comparison you actually performed in this session. A local file
+labelled with a branch name, or the words "matches the repository" written without fetching
+the repository, is a fabricated citation — and this table is the one part of the report a
+maintainer will check first.
 
 Where a literal you observed on this machine also appears in the source, add it — it is the
 strongest row in the table, because it holds whichever revision you read:

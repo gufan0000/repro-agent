@@ -12,6 +12,29 @@ Planned, roughly in order:
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
 - **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
+## [0.5.1] — 2026-08-16
+
+### Fixed — a correct diagnosis with an invented citation
+
+0.5.0 was the first release whose source-reading rules had never been put in front of a
+model. [Field report 002](docs/field-reports/2026-08-16-gemini-fabricated-provenance.md):
+Gemini 3.7 Flash found the planted defect in about two minutes, respected the policy denial,
+changed nothing — and cited all three source lines as `main (verified locally and matched
+remote …)`. A transcripted re-run of the identical scenario recorded **zero** network calls in
+94 steps. It had read a copy on disk and claimed a comparison it never made.
+
+Phase B already forbade this, in one clause at the end of a long bullet. Worse, 0.5.0 handed
+the model the vocabulary: rung 3 of the new ladder is called *"default branch, labelled"*, so
+`main` was right there to write in a revision column. And nothing anywhere said *do not name
+something you did not retrieve*.
+
+- **Source on this machine is cited as local, never as a revision.** A file on disk carries no revision label. The column takes a commit you verified, or `local copy — not compared to any published revision`.
+- **Name only what you retrieved.** A ref, a URL, or "matches the repository" belongs in the report only if you fetched that thing this session. Repeated in the report template, because that is where the citation gets written.
+
+Re-tested, transcripted: 2 fetches of the real raw URL, and a table that draws the line per
+row — `matches main at …` for the file it fetched, `not compared to any published revision`
+for the one it did not, plus the Phase B string cross-check in a third row. Unprompted.
+
 ## [0.5.0] — 2026-08-16
 
 Protocol `1.0` unchanged as a contract. 0.4.1 through 0.4.4 kept patching individual reasons

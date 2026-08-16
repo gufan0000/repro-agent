@@ -231,18 +231,24 @@ Zero runtime dependencies, including the JSON Schema validator. This tool gets r
 
 ## Status
 
-`0.5.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete, covered by 78 tests (`npm test`) plus 13 real-browser tests (`npm run test:browser`) on Linux, macOS and Windows across Node 20 and 22.
+`0.5.1`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete, covered by 79 tests (`npm test`) plus 13 real-browser tests (`npm run test:browser`) on Linux, macOS and Windows across Node 20 and 22.
 
-It has been run against a real defect once, blind: a fresh agent, given nothing but a task
-file and the word `start`, found the root cause in four minutes, cited it at
-`file:line` for the installed revision, ruled out four alternatives, respected a policy
-denial and changed nothing. It also surfaced five holes in the protocol, all now closed.
-Both the write-up and the report it produced are in
-**[field report 001](docs/field-reports/2026-08-14-tasklite-crlf.md)**.
+It has been run against a real defect, blind, on two models. A fresh agent given nothing but
+a task file and the word `start` found the root cause in minutes both times, cited it at
+`file:line`, ruled out alternatives, respected a policy denial and changed nothing —
+**[field report 001](docs/field-reports/2026-08-14-tasklite-crlf.md)** (Claude Sonnet 4.5)
+and **[002](docs/field-reports/2026-08-16-gemini-fabricated-provenance.md)** (Gemini 3.7
+Flash). Between them they surfaced six holes in the protocol, all now closed.
+
+Report 002 is the more useful one, because it caught the protocol failing at its own
+argument: a correct diagnosis carrying a citation to a repository the agent had never
+contacted — proven by a tool-call transcript showing zero network calls. Both the failure and
+the re-test that fixed it are written up there.
 
 Honest limits:
 
-- That is **one** run, one model, one defect, on a machine belonging to the person who planted it. It is a floor, not a measurement. **How reliably models follow this protocol in the wild is still open**, and field reports remain the most useful contribution.
+- That is **two** runs, two models, one defect, on a machine belonging to the person who planted it. It is a floor, not a measurement. **How reliably models follow this protocol in the wild is still open**, and field reports remain the most useful contribution.
+- Both runs had the source already on disk, so the remote-only path — nothing local to read — has never been exercised. It is the least-tested part of the protocol and the part most recently rewritten.
 - `region: china` orders the fallback chain sensibly, but no chain can promise reachability on every network. When every route fails, the protocol requires the agent to say so and mark its conclusions unverified.
 - Adapters ship for the generic (`AGENTS.md`) and WorkBuddy paths. Claude Code, Cursor, Codex and Cline all read `AGENTS.md`-style files, so they work today via the generic adapter; dedicated ones are welcome.
 - An MCP server is [planned](CHANGELOG.md), not written.

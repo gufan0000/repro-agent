@@ -50,8 +50,14 @@ Only facts you verified yourself: process running or not, port bound or not, fil
 
 The revision column has to say which rung of Phase B you were on, so the maintainer knows how
 far to trust each row: an exact ref (`v1.2.3`), a bracket (`v3.1.14.0…v3.3.0.0`, and say in
-the summary that the exact build was never published), or the default branch
-(`main — not the installed build`).
+the summary that the exact build was never published), the default branch
+(`main — not the installed build`), or a file you read off this machine
+(`local copy — not compared to any published revision`).
+
+Only name a ref, a URL, or a comparison you actually performed in this session. A local file
+labelled with a branch name, or the words "matches the repository" written without fetching
+the repository, is a fabricated citation — and this table is the one part of the report a
+maintainer will check first.
 
 Where a literal you observed on this machine also appears in the source, add it — it is the
 strongest row in the table, because it holds whichever revision you read:

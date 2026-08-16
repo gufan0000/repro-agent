@@ -149,6 +149,22 @@ test('the source can be tied to this machine without knowing the revision', () =
   }
 });
 
+test('a citation may not name anything the agent did not retrieve', () => {
+  // Blind run 002: Gemini 3.7 Flash diagnosed the planted defect correctly, then cited every
+  // source line as `main (verified locally and matched remote …)` — off a local copy, with
+  // zero network calls in the whole session. Correct answer, invented provenance.
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const localRule = language === 'zh-CN' ? '本地拷贝 —— 未与任何已发布版本比对' : 'local copy — not compared to any published revision';
+    const onlyRetrieved = language === 'zh-CN' ? '只写你真取回来过的东西' : 'Name only what you retrieved';
+    assert.ok(body.includes(localRule), `${language}: no label for a local read`);
+    assert.ok(body.includes(onlyRetrieved), `${language}: nothing forbids naming an unfetched ref`);
+    // The report template has to repeat it: that is where the citation is actually written.
+    const fabricated = language === 'zh-CN' ? '那是伪造出处' : 'is a fabricated citation';
+    assert.ok(body.includes(fabricated), `${language}: the report template still invites it`);
+  }
+});
+
 test('reading only the default branch is not enough to modify the machine', () => {
   for (const language of LANGUAGES) {
     const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });

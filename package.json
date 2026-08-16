@@ -1,6 +1,6 @@
 {
   "name": "repro-agent",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "No repro, no issue. An agent that runs on the user's machine: diagnoses the problem, fixes what is safely fixable, and otherwise produces a bug report with real reproduction evidence.",
   "keywords": [
     "ai-agent",
