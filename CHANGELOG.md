@@ -7,7 +7,12 @@ The package version and the protocol version move independently; protocol change
 
 Planned, roughly in order:
 
-## [0.4.3] — 2026-08-16
+- **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
+- **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
+- **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
+- **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
+
+## [0.4.4] — 2026-08-16
 
 Protocol `1.0` unchanged as a contract. 0.4.1 fixed one reason an agent gives up on the
 source. Walking the same repository by hand turned up three more, each of which reaches the
@@ -43,7 +48,12 @@ follow and no sanctioned alternative.
 
 The chain named `raw.githubusercontent.com` for contents but offered only a per-directory
 HTML page for locating a path. `git/trees/<ref>?recursive=1` returns every file at a ref in
-one request — 2,096 of them on the repository in question — and is now what the chain says.
+one request — 2,096 of them on the repository in question — and is now what the protocol says.
+
+Both the tag list and the file list live in Phase B's shared rules rather than in a route.
+The first cut of this put them in `route-global` alone, which left every `region: china` task
+without them — including the whole zh-CN adapter, which is generated as `china`. The tests
+that would have caught it were themselves only checking `global`; they now cover both.
 
 ### Fixed — an approval that was never requested, reported as a limitation
 
@@ -58,6 +68,12 @@ rather than as something to request, which is the clone bug in a different costu
 
 These add about 1,600 characters to a rendered task, roughly 400 tokens — worth stating,
 because `frugal` exists for models that feel it.
+
+## [0.4.3] — 2026-08-16
+
+Superseded by 0.4.4 within the hour. It carried the source-access fixes above, but put the
+tag and file listings in `route-global` only, so `region: china` tasks — and the generated
+zh-CN adapter — went out without them. Upgrade past it.
 
 ## [0.4.2] — 2026-08-16
 
@@ -77,11 +93,6 @@ the embedded protocol rather than reading these files.
 - CI now runs `npm run check` rather than restating the rule, then diffs the whole tree
   instead of a named list — an artifact that gains a writer but not a `--check` still gets
   caught.
-
-- **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
-- **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
-- **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
-- **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
 
 ## [0.4.1] — 2026-08-16
 

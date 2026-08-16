@@ -50,7 +50,7 @@ the chain below, not its precondition — the whole chain exists so that you nev
 
 **Source access chain (region: global).** Try in order, stop at the first that works:
 
-1. The agent's own web fetch, **one file at a time**, at the resolved ref: `https://raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>`. Two calls find the ref and the path first — `https://api.github.com/repos/<owner>/<repo>/tags` lists the tags, and `https://api.github.com/repos/<owner>/<repo>/git/trees/<ref>?recursive=1` lists every file at one ref in a single request. Read contents from raw rather than the API: the API allows 60 requests an hour per address unauthenticated, raw file fetches are not rate-limited that way.
+1. The agent's own web fetch, **one file at a time**, at the resolved ref: `https://raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>`.
 2. Any entry in `project.mirrors`, in the order listed. Mirrors expose the same file-level access: Gitee is `https://gitee.com/<owner>/<repo>/raw/<ref>/<path>`, GitCode is `https://raw.gitcode.com/<owner>/<repo>/raw/<ref>/<path>`.
 3. `project.docs_url` and official release notes.
 4. Web search, for the exact error string plus the project name. Treat forum answers as leads to verify, never as conclusions.
@@ -60,7 +60,7 @@ the chain below, not its precondition — the whole chain exists so that you nev
 Rules that apply to every route:
 
 - Read in this order: release notes for the installed version → troubleshooting docs → directory structure → the specific source files the symptom points at.
-- **Resolve the installed version to a real ref before you fetch anything.** A version string is usually not a tag: `3.3.1.0` returns 404 where `v3.3.1.0` succeeds. List the repository's tags once, match `project.version` with and without a leading `v`, and use what actually exists. A full or seven-character commit SHA works anywhere a tag does.
+- **Resolve the installed version to a real ref before you fetch anything.** A version string is usually not a tag: `3.3.1.0` returns 404 where `v3.3.1.0` succeeds. List the repository's tags once, match `project.version` with and without a leading `v`, and use what actually exists; a full or seven-character commit SHA works anywhere a tag does. On GitHub, `https://api.github.com/repos/<owner>/<repo>/tags` lists them, and `https://api.github.com/repos/<owner>/<repo>/git/trees/<ref>?recursive=1` lists every file at one ref in a single request when you do not yet know a path. Use that API to look things up, not to read them: it allows 60 requests an hour per address unauthenticated, while raw file fetches are not limited that way.
 - **If no tag matches the installed version, bracket it.** Read the nearest tag before it and the nearest after, and treat anything that differs between those two as unestablished for the user's build. Name both refs in the report. Never silently substitute `main`, and never present findings from one revision as if they described another.
 - The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
