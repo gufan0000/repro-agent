@@ -5,16 +5,42 @@ The package version and the protocol version move independently; protocol change
 
 ## [Unreleased]
 
-### Added
-
-- **An illustrated walkthrough in the Chinese package** — `图文教程.html`, eight real screenshots from installing an assistant through to handing it the task file, plus what happens after and the five questions people actually ask. WorkBuddy is the worked example and the page says so in its first sentence; every step applies to any assistant that can read local files. Also published at [`web/tutorial.zh-CN.html`](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html), generated from `docs/tutorial/` and covered by the same drift check as the diagnostic page. Screenshots are inlined as data URIs — a tutorial that has to fetch its own images is broken exactly when it is needed. The English package carries the same walkthrough as `HOW-TO.txt`, in words: a Chinese UI in screenshots teaches an English reader nothing.
-
 Planned, roughly in order:
 
 - **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
 - **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.
 - **`repro-agent doctor`** — validate a maintainer profile against a checkout: do the referenced paths and known-issue references actually exist?
+
+## [0.4.1] — 2026-08-16
+
+Protocol `1.0` is unchanged as a contract. This is wording — and the wording was the bug.
+
+### Fixed — agents were skipping the source and calling it unreachable
+
+A report came back from a real run saying *"cannot access the source locally (repository not
+cloned)"*, on a task that carried a public GitHub URL — and whose own citation table proved
+the agent had reached github.com, because it quoted the README from there. It could read the
+web fine. It just did not know that reading source meant fetching a file.
+
+Reading the protocol back, it never really had a chance. Three statements told it not to
+download the repository — the Phase B heading *"without downloading it"*, the line *"you do
+not clone the repository by default"*, and the `no_full_repository_download` policy constant
+— against one abstract line telling it to fetch (*"the agent's built-in web fetch, against
+`project.repository`"*), with no indication of what a fetch of a source file even looks like.
+Then the report template handed it the sentence to give up with: *"Source not reachable **from
+this machine**"*, which frames source access as a property of the local disk. It filled in
+the blank with the only reason it had: no clone.
+
+- **Both route chains now carry the actual URL shape.** `https://raw.githubusercontent.com/<owner>/<repo>/<tag-or-commit>/<path>` for contents, the `tree/<ref>/<dir>` page for finding a path, and the equivalents for Gitee and GitCode. All three verified against live hosts, tags included.
+- **Phase B is now framed by what to do, not what to avoid**: "Read the source without cloning the repository", and *"not having a local clone is not a reason to skip this phase — cloning is the last step of the chain, not its precondition"*.
+- **"Unreachable" now has to be earned.** The agent must name each route it tried and what came back. "There is no local clone", "the repository was not downloaded" and "I only have the README" are explicitly not failed routes, and opening a landing page is explicitly not reading source.
+
+## [0.4.0] — 2026-08-16
+
+### Added
+
+- **An illustrated walkthrough in the Chinese package** — `图文教程.html`, eight real screenshots from installing an assistant through to handing it the task file, plus what happens after and the five questions people actually ask. WorkBuddy is the worked example and the page says so in its first sentence; every step applies to any assistant that can read local files. Also published at [`web/tutorial.zh-CN.html`](https://gufan0000.github.io/repro-agent/web/tutorial.zh-CN.html), generated from `docs/tutorial/` and covered by the same drift check as the diagnostic page. Screenshots are inlined as data URIs — a tutorial that has to fetch its own images is broken exactly when it is needed. The English package carries the same walkthrough as `HOW-TO.txt`, in words: a Chinese UI in screenshots teaches an English reader nothing.
 
 ## [0.3.0] — 2026-08-14
 

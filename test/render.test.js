@@ -97,6 +97,35 @@ test('the injection defence is present in every language', () => {
   }
 });
 
+test('every task tells the agent how to read one file over the web', () => {
+  // Seen in the wild: an agent wrote "cannot access the source (repository not cloned)" and
+  // fell back to local evidence, on a task that carried a public GitHub URL. Three things
+  // had told it not to download the repository and only one abstract line had told it to
+  // fetch files, so it took the exit. Both routes now carry the actual URL shape.
+  for (const language of LANGUAGES) {
+    for (const region of ['global', 'china']) {
+      const body = renderProtocol({ language, region, autonomy: 'guided' });
+      assert.ok(body.includes('raw.githubusercontent.com/<owner>/<repo>/'),
+        `${language}/${region}: no concrete way to fetch a single file`);
+      assert.ok(body.includes('raw.gitcode.com/') && body.includes('gitee.com/'),
+        `${language}/${region}: mirrors are named but not reachable per file`);
+    }
+  }
+});
+
+test('a missing clone is explicitly not an excuse for skipping the source', () => {
+  for (const language of LANGUAGES) {
+    const body = renderProtocol({ language, region: 'global', autonomy: 'guided' });
+    const excuse = language === 'zh-CN' ? '没有本地 clone 不构成跳过本阶段的理由' : 'Not having a local clone is not a reason to skip this phase';
+    assert.ok(body.includes(excuse), `${language}: the clone excuse is not closed off`);
+    // The report template used to hand the agent the sentence it needed to give up.
+    assert.equal(body.includes('Source not reachable from this machine'), false);
+    assert.equal(body.includes('本机无法访问源码，以下结论未经代码核实'), false);
+    const evidence = language === 'zh-CN' ? '试过的路线' : 'Route tried';
+    assert.ok(body.includes(evidence), `${language}: unreachable source can still be claimed without evidence`);
+  }
+});
+
 test('both languages ship every fragment the renderer needs', () => {
   const names = Object.keys(PROTOCOL_FRAGMENTS.en).sort();
   for (const language of LANGUAGES) {

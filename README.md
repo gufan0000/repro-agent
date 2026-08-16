@@ -231,7 +231,7 @@ Zero runtime dependencies, including the JSON Schema validator. This tool gets r
 
 ## Status
 
-`0.3.0`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete, covered by 69 tests (`npm test`) plus 13 real-browser tests (`npm run test:browser`) on Linux, macOS and Windows across Node 20 and 22.
+`0.4.1`, protocol `1.0`. The spec, the CLI, the offline page and both adapters are complete, covered by 73 tests (`npm test`) plus 13 real-browser tests (`npm run test:browser`) on Linux, macOS and Windows across Node 20 and 22.
 
 It has been run against a real defect once, blind: a fresh agent, given nothing but a task
 file and the word `start`, found the root cause in four minutes, cited it at

@@ -1,8 +1,8 @@
 **Source access chain (region: china).** Networks in mainland China reach GitHub unreliably. Try in order, stop at the first that works:
 
-1. Any entry in `project.mirrors` (GitCode / Gitee / self-hosted), in the order listed. Before using a mirror, confirm the target tag or commit exists there — a mirror that lags behind is worse than no mirror, because it silently describes different code.
+1. Any entry in `project.mirrors` (GitCode / Gitee / self-hosted), in the order listed, **one file at a time**: GitCode is `https://raw.gitcode.com/<owner>/<repo>/raw/<ref>/<path>`, Gitee is `https://gitee.com/<owner>/<repo>/raw/<ref>/<path>`. Before trusting a mirror, confirm the target tag or commit exists there — a mirror that lags behind is worse than no mirror, because it silently describes different code.
 2. `project.docs_url` and the official release notes, if hosted domestically or on a reachable CDN.
-3. The agent's built-in web fetch against `project.repository`. Some agent hosts route fetches through a server-side path and succeed even when the local machine cannot reach GitHub. Try it; do not assume either way.
+3. The agent's own web fetch against `project.repository`, again per file: `https://raw.githubusercontent.com/<owner>/<repo>/<tag-or-commit>/<path>`. Some agent hosts route fetches through a server-side path and succeed even when the local machine cannot reach GitHub. Try it; do not assume either way.
 4. Web search in both Chinese and English for the exact error string plus the project name.
 5. If `project.deepwiki` is true, the DeepWiki MCP tool. Re-confirm anything load-bearing against actual source.
 6. Only if all of the above fail *and* the task cannot proceed without full-repository analysis: explain why, request approval, and clone shallowly from a reachable mirror into a temporary directory that you delete afterwards.

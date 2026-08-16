@@ -48,7 +48,17 @@ Only facts you verified yourself: process running or not, port bound or not, fil
 |---|---|---|
 | … | `path/file.ext:120-134` | `v1.2.3` / `abc1234` |
 
-If you could not reach the source, write: `Source not reachable from this machine; conclusions below are unverified against code.`
+If you read no source at all, do not simply assert that it was unreachable. Replace the table
+with the routes you actually tried and what each one returned, so the maintainer can tell the
+difference between a blocked network and a skipped step:
+
+| Route tried | Result |
+|---|---|
+| `raw.githubusercontent.com/<owner>/<repo>/v1.2.3/src/import.js` | 404 |
+| mirror `raw.gitcode.com/<owner>/<repo>/raw/v1.2.3/src/import.js` | connection timed out |
+
+Then write: `Source not reachable; conclusions below are unverified against code.` Having no
+local clone is not a reason to write that line — see section 2, Phase B.
 
 ## Suspected root cause
 One paragraph, with a confidence level: `high` / `medium` / `low` / `unknown`. If low or unknown, say what evidence would raise it.

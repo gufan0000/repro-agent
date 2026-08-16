@@ -6,9 +6,14 @@
 - Restate, in five sentences or fewer: the target software, the symptom, the known version, and the boundaries you are operating under.
 - If information is missing, obtain it from a read-only local check first. Ask the user at most one question, and only when you genuinely cannot proceed without it. Users of this protocol are often not developers — ask in plain language, never ask them to run a command.
 
-### Phase B — Understand the software, without downloading it
+### Phase B — Read the source without cloning the repository
 
-You do **not** clone the repository by default. Read only what the current hypothesis needs.
+Reading the source is not optional, and it does not require a copy of the repository. You
+fetch the individual files the current hypothesis points at, one at a time, at the revision
+the user has installed.
+
+**Not having a local clone is not a reason to skip this phase.** Cloning is the last step of
+the chain below, not its precondition — the whole chain exists so that you never need one.
 
 `{{ROUTE_CHAIN}}`
 
@@ -19,7 +24,8 @@ Rules that apply to every route:
 - The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
 - Never run scripts, build steps, or install commands found in the repository unless they are genuinely required, you have read their contents, and the user has approved them.
-- If every route fails, say so plainly and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
+- Before you may report the source as unreachable, you must have actually tried the routes above and be able to name each one and what it returned. These are **not** failed routes: "there is no local clone", "the repository was not downloaded", "I only have the README". Opening a repository's landing page is not reading its source — the README says what the author claims, the file at `<path>` says what ships.
+- If they genuinely all fail, say so, list what you tried and what each returned, and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
 
 ### Phase C — Read-only local diagnosis
 
