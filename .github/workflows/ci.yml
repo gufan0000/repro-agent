@@ -40,14 +40,16 @@ jobs:
       # protocol/** and spec/** are the source of truth; the embedded copies must match.
       - name: protocol and schema artifacts
         run: npm run generate -- --check
-      - name: typecheck
-        run: npx tsc -p tsconfig.json --noEmit
-      - name: checked-in adapters and offline page
+      # `npm run check` regenerates nothing and fails on any stale artifact, so it is the
+      # same gate a developer gets locally. The belt-and-braces `git diff` stays: it catches
+      # an artifact that gains a writer but never gains a --check.
+      - name: nothing generated is stale
+        run: npm run check
+      - name: and nothing in the tree moved
         run: |
           npm run build
-          node tools/build-adapters.mjs
-          git diff --exit-code -- adapters/ web/index.html web/tutorial.zh-CN.html || {
-            echo "::error::generated files are stale — run 'npm run build && node tools/build-adapters.mjs' and commit"
+          git diff --exit-code || {
+            echo "::error::generated files are stale — run 'npm run build' and commit the result"
             exit 1
           }
 

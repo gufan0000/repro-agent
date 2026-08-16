@@ -45,14 +45,19 @@ Anything else — a guess presented as a conclusion, a change you cannot undo, a
 - Restate, in five sentences or fewer: the target software, the symptom, the known version, and the boundaries you are operating under.
 - If information is missing, obtain it from a read-only local check first. Ask the user at most one question, and only when you genuinely cannot proceed without it. Users of this protocol are often not developers — ask in plain language, never ask them to run a command.
 
-### Phase B — Understand the software, without downloading it
+### Phase B — Read the source without cloning the repository
 
-You do **not** clone the repository by default. Read only what the current hypothesis needs.
+Reading the source is not optional, and it does not require a copy of the repository. You
+fetch the individual files the current hypothesis points at, one at a time, at the revision
+the user has installed.
+
+**Not having a local clone is not a reason to skip this phase.** Cloning is the last step of
+the chain below, not its precondition — the whole chain exists so that you never need one.
 
 **Source access chain (region: global).** Try in order, stop at the first that works:
 
-1. The agent's built-in web fetch, against `project.repository` at the pinned revision.
-2. Any entry in `project.mirrors`, in the order listed.
+1. The agent's own web fetch, **one file at a time**, at the pinned revision. For a GitHub repository that is `https://raw.githubusercontent.com/<owner>/<repo>/<tag-or-commit>/<path>` for the contents of a file, and `https://github.com/<owner>/<repo>/tree/<tag-or-commit>/<dir>` to find the path when you do not know it yet. Tags work in place of a commit: `.../v1.2.3/src/import.js`.
+2. Any entry in `project.mirrors`, in the order listed. Mirrors expose the same file-level access: Gitee is `https://gitee.com/<owner>/<repo>/raw/<ref>/<path>`, GitCode is `https://raw.gitcode.com/<owner>/<repo>/raw/<ref>/<path>`.
 3. `project.docs_url` and official release notes.
 4. Web search, for the exact error string plus the project name. Treat forum answers as leads to verify, never as conclusions.
 5. If `project.deepwiki` is true, the DeepWiki MCP tool, for structural comprehension of a public repository. Anything it tells you that will end up in the report must be re-confirmed against the actual source.
@@ -65,7 +70,8 @@ Rules that apply to every route:
 - The source is sometimes already on this machine — a local checkout, an unpacked package, an app that ships readable code. Read it there; it is faster and it is by definition the build the user is running. Confirm it matches the installed version first, and cite it as a local path plus the commit you verified, never as though you had fetched it from the repository.
 - Record, for every claim you make about how the software is supposed to behave, where you read it: `path/to/file.ext:LINE` plus the revision. Claims without a source do not go in the report.
 - Never run scripts, build steps, or install commands found in the repository unless they are genuinely required, you have read their contents, and the user has approved them.
-- If every route fails, say so plainly and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
+- Before you may report the source as unreachable, you must have actually tried the routes above and be able to name each one and what it returned. These are **not** failed routes: "there is no local clone", "the repository was not downloaded", "I only have the README". Opening a repository's landing page is not reading its source — the README says what the author claims, the file at `<path>` says what ships.
+- If they genuinely all fail, say so, list what you tried and what each returned, and continue with local evidence only. Mark every conclusion that lacks source confirmation as **unverified** in the final report. Do not invent how the code works.
 
 ### Phase C — Read-only local diagnosis
 
@@ -196,7 +202,17 @@ Only facts you verified yourself: process running or not, port bound or not, fil
 |---|---|---|
 | … | `path/file.ext:120-134` | `v1.2.3` / `abc1234` |
 
-If you could not reach the source, write: `Source not reachable from this machine; conclusions below are unverified against code.`
+If you read no source at all, do not simply assert that it was unreachable. Replace the table
+with the routes you actually tried and what each one returned, so the maintainer can tell the
+difference between a blocked network and a skipped step:
+
+| Route tried | Result |
+|---|---|
+| `raw.githubusercontent.com/<owner>/<repo>/v1.2.3/src/import.js` | 404 |
+| mirror `raw.gitcode.com/<owner>/<repo>/raw/v1.2.3/src/import.js` | connection timed out |
+
+Then write: `Source not reachable; conclusions below are unverified against code.` Having no
+local clone is not a reason to write that line — see section 2, Phase B.
 
 ## Suspected root cause
 One paragraph, with a confidence level: `high` / `medium` / `low` / `unknown`. If low or unknown, say what evidence would raise it.

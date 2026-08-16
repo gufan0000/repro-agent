@@ -7,6 +7,25 @@ The package version and the protocol version move independently; protocol change
 
 Planned, roughly in order:
 
+## [0.4.2] — 2026-08-16
+
+### Fixed — the checked-in adapters described the old protocol
+
+`adapters/**` is generated from `protocol/**`, ships in the npm tarball, and is meant to be
+copyable straight out of the repository. But `npm run build` never wrote it and `npm run
+check` never checked it: only CI did, after the fact. So 0.4.1 published adapters carrying
+the Phase B text the release had just replaced. 0.1.0 shipped the same way, for the same
+reason — twice is a process defect, not an oversight.
+
+`repro-agent adapters` and `repro-agent build` were unaffected throughout: both render from
+the embedded protocol rather than reading these files.
+
+- `npm run build` writes the adapters and `npm run check` fails on a stale one, so the gate a
+  developer gets locally is the gate CI applies.
+- CI now runs `npm run check` rather than restating the rule, then diffs the whole tree
+  instead of a named list — an artifact that gains a writer but not a `--check` still gets
+  caught.
+
 - **MCP server** — expose task generation, validation and redaction as MCP tools so an assistant can drive the whole loop without the user touching a file.
 - **Dedicated adapters** for Claude Code (skill), Cursor (rules) and Cline. All of these work today through the generic `AGENTS.md` adapter.
 - **A field-report corpus** — anonymised real runs, used as regression cases for protocol wording.

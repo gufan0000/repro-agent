@@ -1,6 +1,6 @@
 {
   "name": "repro-agent",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "No repro, no issue. An agent that runs on the user's machine: diagnoses the problem, fixes what is safely fixable, and otherwise produces a bug report with real reproduction evidence.",
   "keywords": [
     "ai-agent",
@@ -54,10 +54,10 @@
   },
   "scripts": {
     "generate": "node tools/build-protocol.mjs",
-    "build": "npm run generate && tsc -p tsconfig.json && node tools/build-web.mjs",
+    "build": "npm run generate && tsc -p tsconfig.json && node tools/build-web.mjs && node tools/build-adapters.mjs",
     "test": "npm run build && node tools/run-tests.mjs",
     "test:browser": "npm run build && node --test test/browser.e2e.mjs",
-    "check": "npm run generate -- --check && tsc -p tsconfig.json && node tools/build-web.mjs --check",
+    "check": "npm run generate -- --check && tsc -p tsconfig.json && node tools/build-web.mjs --check && node tools/build-adapters.mjs --check",
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
