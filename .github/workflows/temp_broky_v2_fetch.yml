@@ -10,49 +10,68 @@ permissions:
   contents: read
 
 jobs:
-  inspect-hltv-highlight-metadata:
+  fetch-official-youtube-footage:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch raw HLTV event pages and inspect highlight metadata
+      - name: Install media tools
         shell: bash
         run: |
           set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install -q --upgrade pip
+          python -m pip install -q --upgrade 'yt-dlp[default,curl-cffi]'
+      - name: Download official footage excerpts
+        shell: bash
+        run: |
+          set -uo pipefail
           mkdir -p out
-          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
-          curl -fL --compressed -A "$UA" 'https://www.hltv.org/events/6136/iem-katowice-2022' -o out/kato.html
-          curl -fL --compressed -A "$UA" 'https://www.hltv.org/events/7437/iem-chengdu-2024' -o out/chengdu.html
-          curl -fL --compressed -A "$UA" 'https://www.hltv.org/events/7524/perfect-world-shanghai-major-2024' -o out/shanghai.html
-          python - <<'PY'
-          from pathlib import Path
-          uuids = {
-            'kato.html': ['3b500603-4ce7-4539-9dad-2d5dfbafe9d7','26874f17-703f-446a-af95-33f9f789bca4','f0c34822-d0c8-45bf-a587-fa115eb486fd'],
-            'chengdu.html': ['b602096a-372e-4b2c-bc54-5e3dc2df73b6','aaae198a-09e2-4906-8b70-3e45f5555649','36184316-3258-43a0-b9ba-a436c465dce5'],
-            'shanghai.html': ['453b468a-36c4-4016-894d-8b154b9ac1ec','7690329c-8c57-46fc-bfac-ccedfbed0c34','14c15d61-051e-42fd-a177-8b968c9c22e0'],
+          : > out/download.log
+          grab_section() {
+            name="$1"; url="$2"; section="$3"
+            echo "===== $name :: $url :: $section =====" | tee -a out/download.log
+            yt-dlp --no-warnings --impersonate chrome \
+              --format 'bv*[height<=720]+ba/b[height<=720]/b' \
+              --merge-output-format mp4 --force-keyframes-at-cuts \
+              --download-sections "$section" \
+              --output "out/${name}.%(ext)s" "$url" 2>&1 | tee -a out/download.log || true
           }
-          out = Path('out')
-          summary=[]
-          for fn, ids in uuids.items():
-            text=(out/fn).read_text(errors='replace')
-            summary.append(f'===== {fn} size={len(text)} =====')
-            for uid in ids:
-              p=text.find(uid)
-              summary.append(f'\n--- {uid} pos={p} ---')
-              if p>=0:
-                snippet=text[max(0,p-3500):p+3500]
-                (out/f'{fn}.{uid}.snippet.html').write_text(snippet)
-                summary.append(snippet)
-          (out/'snippets.txt').write_text('\n'.join(summary))
-          PY
-          grep -rhoE 'https?://[^"'"'<> ]+' out/*.html | grep -Ei 'twitch|jtvnw|cloudfront' | sort -u > out/media_urls.txt || true
-          grep -rhoE '(clips\.twitch\.tv|twitch\.tv)/[^"'"'<> ]+' out/*.html | sort -u > out/twitch_refs.txt || true
-          wc -c out/* | tee out/files.txt
-      - name: Upload inspection artifact
+          grab_full() {
+            name="$1"; url="$2"
+            echo "===== $name :: $url =====" | tee -a out/download.log
+            yt-dlp --no-warnings --impersonate chrome \
+              --format 'bv*[height<=720]+ba/b[height<=720]/b' \
+              --merge-output-format mp4 \
+              --output "out/${name}.%(ext)s" "$url" 2>&1 | tee -a out/download.log || true
+          }
+
+          # ESL Archives: official IEM Katowice 2022 grand final map VODs.
+          # Map 2 chapter marks broky's 1v2 at 01:50:18.
+          grab_section 01_kato22_broky_1v2 'https://www.youtube.com/watch?v=SQnw7Z1YOn4' '*01:49:30-01:52:10'
+          # Map 3: the 13-13 breaker sits around round 27, starting 00:49:13.
+          grab_section 02_kato22_broky_4awp 'https://www.youtube.com/watch?v=jUe-NSgmAgQ' '*00:48:45-00:51:20'
+
+          # ESL Counter-Strike Extra: dedicated official broky Chengdu MVP montage.
+          grab_full 03_chengdu24_broky_mvp 'https://www.youtube.com/watch?v=M_4iBLZ79Xc'
+
+          # PGL Counter-Strike Highlights: official Shanghai Major grand final highlights.
+          grab_full 04_shanghai24_grand_final 'https://www.youtube.com/watch?v=LvcfSP2PUPI'
+
+          find out -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          : > out/ffprobe.tsv
+          for f in out/*.mp4 out/*.webm out/*.mkv; do
+            [ -f "$f" ] || continue
+            printf '%s\t' "$(basename "$f")" >> out/ffprobe.tsv
+            ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv || true
+            printf '\n' >> out/ffprobe.tsv
+          done
+      - name: Upload footage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-hltv-metadata
+          name: broky-v2-official-footage
           path: out
           retention-days: 2
-          compression-level: 6
+          compression-level: 0
           if-no-files-found: error
