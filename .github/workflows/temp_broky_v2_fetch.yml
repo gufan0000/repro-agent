@@ -10,81 +10,84 @@ permissions:
   contents: read
 
 jobs:
-  fetch-bilibili-via-api:
+  fetch-youtube-footage:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
+
+      - name: Install media and PO-token tools
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg jq
-          python -m pip install -q requests
-      - name: Resolve Bilibili public play URLs and fetch selected footage
+          sudo apt-get install -y -qq ffmpeg curl
+          python -m pip install -q --upgrade pip
+          python -m pip install -q --upgrade yt-dlp bgutil-ytdlp-pot-provider
+          docker run -d --rm --name bgutil-provider -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider:latest
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4416 >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          yt-dlp --version
+
+      - name: Fetch precise public match excerpts
         shell: bash
         run: |
-          set -euxo pipefail
+          set -uo pipefail
           mkdir -p out/raw out/final
-          cat > /tmp/fetch_bili.py <<'PY'
-          import json, subprocess, sys
-          from pathlib import Path
-          import requests
+          : > out/download.log
 
-          UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
-          S = requests.Session()
-          S.headers.update({'User-Agent': UA, 'Accept': 'application/json,text/plain,*/*'})
-          out = Path('out'); (out/'raw').mkdir(parents=True, exist_ok=True); (out/'final').mkdir(parents=True, exist_ok=True)
+          ytdl_section() {
+            local name="$1" url="$2" section="$3"
+            echo "===== $name :: $url :: $section =====" | tee -a out/download.log
+            yt-dlp \
+              --no-warnings --ignore-errors --no-playlist \
+              --remote-components ejs:github \
+              --extractor-args "youtube:player_client=mweb,web_embedded" \
+              --download-sections "$section" \
+              --force-keyframes-at-cuts \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --output "out/raw/${name}.%(ext)s" \
+              "$url" 2>&1 | tee -a out/download.log || true
+          }
 
-          # name, bvid, page, trim_start, trim_duration. None = whole short video.
-          jobs = [
-            ('01_early_2020_vitality', 'BV1Zr4y1w77S', 1, None, None),
-            ('02_broky_deagle_1v4', 'BV1uz4y1t76k', 1, None, None),
-            ('03_broky_1v4_ace_2022', 'BV1ye411g7vo', 1, None, None),
-            ('04_chengdu_mvp_2024', 'BV1HC411V7Zm', 1, None, None),
-            ('05_broky_tec9_1v4_2025', 'BV1rkWqzQEai', 1, None, None),
-            ('06_antwerp_final_tail', 'BV1rcSWYPEhX', 2, '00:49:00', '00:08:15'),
-            ('07_shanghai_final_tail', 'BV1NeqoYqECx', 3, '01:04:30', '00:07:34'),
-          ]
-          report=[]
-          for name,bvid,page,start,dur in jobs:
-            ref=f'https://www.bilibili.com/video/{bvid}/'
-            headers={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
-            try:
-              r=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=headers,timeout=30)
-              info=r.json(); assert info.get('code')==0, info
-              pages=info['data']['pages']; p=pages[page-1]; cid=p['cid']
-              pr=S.get('https://api.bilibili.com/x/player/playurl',params={
-                'bvid':bvid,'cid':cid,'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'
-              },headers=headers,timeout=30)
-              play=pr.json(); assert play.get('code')==0, play
-              durl=(play.get('data') or {}).get('durl') or []
-              if not durl:
-                raise RuntimeError('no durl: '+json.dumps(play)[:1000])
-              url=durl[0]['url']
-              report.append({'name':name,'bvid':bvid,'page':page,'cid':cid,'part':p.get('part'),'duration':p.get('duration'),'play_quality':play['data'].get('quality'),'size':durl[0].get('size')})
-              raw=out/'raw'/f'{name}.mp4'
-              if start is None:
-                with S.get(url,headers=headers,stream=True,timeout=120) as rr:
-                  rr.raise_for_status()
-                  with raw.open('wb') as f:
-                    for chunk in rr.iter_content(1024*1024):
-                      if chunk: f.write(chunk)
-              else:
-                hdr=f'Referer: {ref}\\r\\nUser-Agent: {UA}\\r\\n'
-                cmd=['ffmpeg','-y','-loglevel','warning','-ss',start,'-headers',hdr,'-i',url,'-t',dur,'-c','copy',str(raw)]
-                subprocess.run(cmd,check=True)
-              final=out/'final'/f'{name}.mp4'
-              subprocess.run(['ffmpeg','-y','-loglevel','warning','-i',str(raw),'-vf','scale=-2:720:flags=lanczos,fps=30','-c:v','libx264','-preset','fast','-crf','21','-c:a','aac','-b:a','128k','-movflags','+faststart',str(final)],check=True)
-              raw.unlink(missing_ok=True)
-            except Exception as e:
-              report.append({'name':name,'bvid':bvid,'error':repr(e)})
-          (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
-          PY
-          python /tmp/fetch_bili.py
+          ytdl_whole() {
+            local name="$1" url="$2"
+            echo "===== $name :: $url =====" | tee -a out/download.log
+            yt-dlp \
+              --no-warnings --ignore-errors --no-playlist \
+              --remote-components ejs:github \
+              --extractor-args "youtube:player_client=mweb,web_embedded" \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --output "out/raw/${name}.%(ext)s" \
+              "$url" 2>&1 | tee -a out/download.log || true
+          }
+
+          # IEM Katowice 2022 grand final: broky multi-kills on Inferno and the iconic 4-AWP round on Dust2.
+          ytdl_section "01_kato22_inferno_broky_3k" "https://www.youtube.com/watch?v=bucux7fBcgE" "*00:48:45-00:50:25"
+          ytdl_section "02_kato22_dust2_broky_4awp" "https://www.youtube.com/watch?v=jUe-NSgmAgQ" "*00:49:05-00:50:50"
+
+          # IEM Chengdu 2024: dedicated broky MVP highlight video.
+          ytdl_whole "03_chengdu24_broky_mvp" "https://www.youtube.com/watch?v=M_4iBLZ79Xc"
+
+          # Shanghai Major 2024: official PGL highlight package + raw winning moment for the emotional drop.
+          ytdl_section "04_shanghai24_pgl_highlights" "https://www.youtube.com/watch?v=LvcfSP2PUPI" "*00:00:00-00:08:00"
+          ytdl_whole "05_shanghai24_winning_moment" "https://www.youtube.com/watch?v=Ovci_VU4Kb0"
+
+          # Normalize whatever succeeded to stable 720p30 H.264 clips.
+          for f in out/raw/*; do
+            [ -f "$f" ] || continue
+            base="$(basename "${f%.*}")"
+            ffmpeg -y -loglevel warning -i "$f" \
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30" \
+              -c:v libx264 -preset fast -crf 20 -c:a aac -b:a 128k -movflags +faststart \
+              "out/final/${base}.mp4" || true
+          done
+
           find out/final -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
-          cat out/report.json
           : > out/ffprobe.tsv
           for f in out/final/*.mp4; do
             [ -f "$f" ] || continue
@@ -92,10 +95,13 @@ jobs:
             ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv
             printf '\n' >> out/ffprobe.tsv
           done
+          cat out/files.txt
+          cat out/ffprobe.tsv
+
       - name: Upload footage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-bilibili-api-footage
+          name: broky-v2-youtube-footage
           path: out
           retention-days: 2
           compression-level: 0
