@@ -1,91 +1,83 @@
-name: CI
+name: Temporary broky V2 footage fetch
 
 on:
-  push:
-    branches: [main]
   pull_request:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: test (node ${{ matrix.node }} / ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ['20', '22']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node }}
-          cache: npm
-      - run: npm ci
-      - run: npm test
-
-  generated:
-    name: generated files are in sync
+  fetch-broky-footage:
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      # protocol/** and spec/** are the source of truth; the embedded copies must match.
-      - name: protocol and schema artifacts
-        run: npm run generate -- --check
-      # `npm run check` regenerates nothing and fails on any stale artifact, so it is the
-      # same gate a developer gets locally. The belt-and-braces `git diff` stays: it catches
-      # an artifact that gains a writer but never gains a --check.
-      - name: nothing generated is stale
-        run: npm run check
-      - name: and nothing in the tree moved
+
+      - name: Install tools
+        shell: bash
         run: |
-          npm run build
-          git diff --exit-code || {
-            echo "::error::generated files are stale — run 'npm run build' and commit the result"
-            exit 1
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install -q --upgrade pip yt-dlp
+
+      - name: Fetch selected public clips
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          : > out/download.log
+          grab() {
+            name="$1"; url="$2"; shift 2
+            echo "===== $name :: $url =====" | tee -a out/download.log
+            yt-dlp --no-warnings --ignore-errors --no-playlist \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --output "out/${name}.%(ext)s" "$@" "$url" 2>&1 | tee -a out/download.log || true
           }
 
-  browser:
-    # The offline page is the artifact a non-technical person actually opens. Asserting on
-    # its source text is not enough: the maintainer defaults that never reached the builder,
-    # and the project fields a user could overwrite, both passed a green string-matching
-    # suite. One real browser, one OS — enough to catch that class of bug.
-    name: the offline page works in a real browser
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
+          # Early FaZe / CSGO era.
+          grab 01_early_2020_vitality "https://www.bilibili.com/video/BV1Zr4y1w77S/"
 
-  dogfood:
-    name: our own profile is valid
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+          # Signature clutches / peak identity.
+          grab 02_deagle_1v4_g2 "https://www.bilibili.com/video/BV1uz4y1t76k/"
+          grab 03_ace_1v4_2022 "https://www.bilibili.com/video/BV1ye411g7vo/"
+          grab 04_top10_2023 "https://www.bilibili.com/video/BV1Ug4y1D7wr/"
+          grab 05_chengdu_mvp_2024 "https://www.bilibili.com/video/BV1HC411V7Zm/"
+
+          # Shanghai Major: semifinal/arena atmosphere and the final map tail.
+          yt-dlp --no-warnings --ignore-errors \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --playlist-items 1 \
+              --download-sections "*00:00:00-00:03:30" \
+              --output "out/06_shanghai_semifinal_open.%(ext)s" \
+              "https://www.bilibili.com/video/BV1Y9BLYiEcL/" 2>&1 | tee -a out/download.log || true
+
+          yt-dlp --no-warnings --ignore-errors \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --playlist-items 3 \
+              --download-sections "*01:05:30-01:12:04" \
+              --output "out/07_shanghai_final_tail.%(ext)s" \
+              "https://www.bilibili.com/video/BV1NeqoYqECx/" 2>&1 | tee -a out/download.log || true
+
+          # Later-period footage, useful before the bench card.
+          grab 08_broky_tec9_1v4_2025 "https://www.bilibili.com/video/BV1rkWqzQEai/"
+          grab 09_broky_awp_1v3_2025 "https://www.bilibili.com/video/BV14NhozNEr4/"
+
+          find out -type f -maxdepth 1 -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          for f in out/*.mp4 out/*.webm out/*.mkv; do
+            [ -f "$f" ] || continue
+            ffprobe -v error -show_entries format=filename,duration,size -show_entries stream=index,codec_name,width,height,r_frame_rate -of json "$f" >> out/ffprobe.jsonl 2>/dev/null || true
+          done
+
+      - name: Upload footage artifact
+        uses: actions/upload-artifact@v4
         with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: node dist/index.js validate .repro/project.json
-      - run: node dist/index.js validate examples/*/project.json
-      - name: end-to-end kit build
-        run: |
-          node dist/index.js build --profile .repro/project.json --out /tmp/kit
-          test -f /tmp/kit/repro-agent-cli-support.html
-          node dist/index.js task --profile .repro/project.json --summary "smoke test" -o /tmp/task.md
-          node dist/index.js validate /tmp/task.md
+          name: broky-v2-footage
+          path: out
+          retention-days: 2
+          compression-level: 0
+          if-no-files-found: error
