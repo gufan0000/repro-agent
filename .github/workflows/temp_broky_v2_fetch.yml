@@ -10,98 +10,65 @@ permissions:
   contents: read
 
 jobs:
-  fetch-reddit-footage:
+  inspect-bilibili-api:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
+      - name: Inspect public Bilibili metadata and play URLs
         shell: bash
         run: |
           set -euxo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          mkdir -p out
           python -m pip install -q requests
-      - name: Fetch Reddit native videos
-        shell: bash
-        run: |
-          set -euxo pipefail
-          mkdir -p out/raw out/final
-          cat > /tmp/reddit_fetch.py <<'PY'
-          import json, subprocess
+          cat > /tmp/inspect.py <<'PY'
+          import json, requests
           from pathlib import Path
-          import requests
-
-          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36 broky-edit/1.0'
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
           S=requests.Session(); S.headers.update({'User-Agent':UA})
-          OUT=Path('out'); (OUT/'raw').mkdir(parents=True,exist_ok=True); (OUT/'final').mkdir(parents=True,exist_ok=True)
-          posts=[
-            ('01_katowice22_broky_1v2','t2w54n'),
-            ('02_broky_1v4_ace_2022','wzx120'),
-            ('03_broky_g2_1v4_repost','1u8j9p7'),
+          jobs=[
+            ('early','BV1Zr4y1w77S',1),
+            ('deagle1v4','BV1uz4y1t76k',1),
+            ('ace1v4_2022','BV1ye411g7vo',1),
+            ('chengdu','BV1HC411V7Zm',1),
+            ('tec9_2025','BV1rkWqzQEai',1),
+            ('antwerp','BV1rcSWYPEhX',2),
+            ('shanghai','BV1NeqoYqECx',3),
           ]
-          report=[]
-          def find_video(d):
-            candidates=[d]
-            candidates += d.get('crosspost_parent_list') or []
-            for x in candidates:
-              for key in ('secure_media','media'):
-                m=x.get(key) or {}
-                rv=m.get('reddit_video') or {}
-                if rv.get('fallback_url'):
-                  return rv.get('fallback_url'),rv
-              pv=x.get('preview') or {}
-              rv=pv.get('reddit_video_preview') or {}
-              if rv.get('fallback_url'):
-                return rv.get('fallback_url'),rv
-            return None,None
-          for name,pid in posts:
-            item={'name':name,'id':pid}
+          out=[]
+          for name,bvid,page in jobs:
+            item={'name':name,'bvid':bvid,'page':page}
             try:
-              urls=[f'https://www.reddit.com/comments/{pid}.json?raw_json=1',f'https://old.reddit.com/comments/{pid}.json?raw_json=1']
-              obj=None
-              for u in urls:
-                r=S.get(u,timeout=30,headers={'User-Agent':UA,'Accept':'application/json'})
-                item.setdefault('http',[]).append([u,r.status_code,r.text[:120]])
-                if r.ok:
-                  try: obj=r.json(); break
-                  except Exception: pass
-              if obj is None: raise RuntimeError('reddit json unavailable')
-              d=obj[0]['data']['children'][0]['data']
-              item.update({'title':d.get('title'),'permalink':d.get('permalink'),'dest':d.get('url_overridden_by_dest') or d.get('url')})
-              url,rv=find_video(d)
-              if not url: raise RuntimeError('no native reddit video; dest='+str(item.get('dest')))
-              url=url.replace('&amp;','&')
-              item['video_url']=url; item['reddit_video']=rv
-              raw=OUT/'raw'/f'{name}.mp4'
-              rr=S.get(url,stream=True,timeout=120,headers={'User-Agent':UA,'Referer':'https://www.reddit.com/'})
-              rr.raise_for_status()
-              with raw.open('wb') as f:
-                for chunk in rr.iter_content(1024*1024):
-                  if chunk: f.write(chunk)
-              final=OUT/'final'/f'{name}.mp4'
-              subprocess.run(['ffmpeg','-y','-loglevel','warning','-i',str(raw),'-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30','-an','-c:v','libx264','-preset','fast','-crf','19','-movflags','+faststart',str(final)],check=True)
-              item['downloaded']=raw.stat().st_size; item['final']=final.stat().st_size
-            except Exception as e:
-              item['error']=repr(e)
-            report.append(item)
-          (OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+              ref=f'https://www.bilibili.com/video/{bvid}/'
+              h={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
+              r=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=h,timeout=20)
+              item['view_http']=r.status_code
+              j=r.json(); item['view_code']=j.get('code')
+              if j.get('code')!=0: item['view_msg']=j; out.append(item); continue
+              d=j['data']; p=d['pages'][page-1]
+              item.update({'title':d.get('title'),'aid':d.get('aid'),'cid':p['cid'],'part':p.get('part'),'duration':p.get('duration'),'pages':len(d['pages'])})
+              pr=S.get('https://api.bilibili.com/x/player/playurl',params={'bvid':bvid,'cid':p['cid'],'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'},headers=h,timeout=20)
+              item['play_http']=pr.status_code
+              pj=pr.json(); item['play_code']=pj.get('code')
+              pd=pj.get('data') or {}; item['quality']=pd.get('quality'); item['format']=pd.get('format')
+              ds=pd.get('durl') or []
+              item['durl_count']=len(ds)
+              if ds:
+                du=ds[0]; item.update({'durl_size':du.get('size'),'durl_length_ms':du.get('length'),'url_prefix':du.get('url','')[:180]})
+                try:
+                  hr=S.head(du['url'],headers=h,timeout=20,allow_redirects=True)
+                  item['head_http']=hr.status_code; item['head_len']=hr.headers.get('content-length'); item['accept_ranges']=hr.headers.get('accept-ranges'); item['final_host']=hr.url.split('/')[2]
+                except Exception as e: item['head_error']=repr(e)
+            except Exception as e: item['error']=repr(e)
+            out.append(item)
+          Path('out/report.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False,indent=2))
           PY
-          python /tmp/reddit_fetch.py
-          find out/final -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
-          cat out/report.json
-          : > out/ffprobe.tsv
-          for f in out/final/*.mp4; do
-            [ -f "$f" ] || continue
-            printf '%s\t' "$(basename "$f")" >> out/ffprobe.tsv
-            ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv
-            printf '\n' >> out/ffprobe.tsv
-          done
-      - name: Upload footage artifact
+          python /tmp/inspect.py
+      - name: Upload metadata artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-reddit-footage
+          name: broky-v2-bilibili-metadata
           path: out
           retention-days: 2
-          compression-level: 0
           if-no-files-found: error
