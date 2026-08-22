@@ -1,0 +1,91 @@
+name: Temporary broky V2 footage fetch
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'temp/broky_v2_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-broky-footage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install media tools
+        shell: bash
+        run: |
+          set -euxo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install -q --upgrade pip
+          python -m pip install -q --upgrade 'yt-dlp[default,curl-cffi]'
+
+      - name: Fetch selected public clips
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p out
+          : > out/download.log
+
+          grab() {
+            name="$1"; url="$2"; shift 2
+            echo "===== $name :: $url =====" | tee -a out/download.log
+            yt-dlp --no-warnings --ignore-errors --no-playlist \
+              --impersonate chrome \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --output "out/${name}.%(ext)s" "$@" "$url" 2>&1 | tee -a out/download.log || true
+          }
+
+          # Early FaZe / CSGO period.
+          grab 01_early_2020_vitality "https://www.bilibili.com/video/BV1Zr4y1w77S/"
+
+          # Signature clutch identity / peak-era highlights.
+          grab 02_deagle_1v4_g2 "https://www.bilibili.com/video/BV1uz4y1t76k/"
+          grab 03_ace_1v4_2022 "https://www.bilibili.com/video/BV1ye411g7vo/"
+          grab 04_top10_2023 "https://www.bilibili.com/video/BV1Ug4y1D7wr/"
+          grab 05_chengdu_mvp_2024 "https://www.bilibili.com/video/BV1HC411V7Zm/"
+
+          # 2025 clips for the late-career tension before the bench card.
+          grab 08_tec9_1v4_2025 "https://www.bilibili.com/video/BV1rkWqzQEai/"
+          grab 09_awp_1v3_2025 "https://www.bilibili.com/video/BV14NhozNEr4/"
+
+          # Major finals: only short tails to keep the artifact compact.
+          yt-dlp --no-warnings --ignore-errors --impersonate chrome \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --playlist-items 2 \
+              --download-sections "*00:50:00-00:57:15" \
+              --output "out/06_antwerp_final_tail.%(ext)s" \
+              "https://www.bilibili.com/video/BV1rcSWYPEhX/" 2>&1 | tee -a out/download.log || true
+
+          yt-dlp --no-warnings --ignore-errors --impersonate chrome \
+              --format "bv*[height<=720]+ba/b[height<=720]/b" \
+              --merge-output-format mp4 \
+              --playlist-items 3 \
+              --download-sections "*01:05:30-01:12:04" \
+              --output "out/07_shanghai_final_tail.%(ext)s" \
+              "https://www.bilibili.com/video/BV1NeqoYqECx/" 2>&1 | tee -a out/download.log || true
+
+          find out -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          for f in out/*.mp4 out/*.webm out/*.mkv; do
+            [ -f "$f" ] || continue
+            ffprobe -v error \
+              -show_entries format=filename,duration,size \
+              -show_entries stream=index,codec_name,width,height,r_frame_rate \
+              -of json "$f" >> out/ffprobe.jsonl 2>/dev/null || true
+          done
+
+      - name: Upload footage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: broky-v2-footage
+          path: out
+          retention-days: 2
+          compression-level: 0
+          if-no-files-found: error
