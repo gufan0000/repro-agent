@@ -10,9 +10,50 @@ permissions:
   contents: read
 
 jobs:
-  fetch-bilibili-precise:
+  fetch-clip:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        include:
+          - name: deagle_1v4_g2
+            bvid: BV1uz4y1t76k
+            page: 1
+            mode: full
+            start: none
+            duration: none
+          - name: ace_1v4_2022
+            bvid: BV1ye411g7vo
+            page: 1
+            mode: full
+            start: none
+            duration: none
+          - name: chengdu_mvp_2024
+            bvid: BV1HC411V7Zm
+            page: 1
+            mode: full
+            start: none
+            duration: none
+          - name: tec9_1v4_2025
+            bvid: BV1rkWqzQEai
+            page: 1
+            mode: full
+            start: none
+            duration: none
+          - name: antwerp_final_tail
+            bvid: BV1rcSWYPEhX
+            page: 2
+            mode: segment
+            start: '00:52:00'
+            duration: '00:05:15'
+          - name: shanghai_final_tail
+            bvid: BV1NeqoYqECx
+            page: 3
+            mode: segment
+            start: '01:06:00'
+            duration: '00:06:10'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 22
     steps:
       - uses: actions/checkout@v4
       - name: Install tools
@@ -22,84 +63,54 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           python -m pip install -q requests
-      - name: Fetch verified 720p broky footage
+      - name: Fetch one verified clip
         shell: bash
+        env:
+          NAME: ${{ matrix.name }}
+          BVID: ${{ matrix.bvid }}
+          PAGE: ${{ matrix.page }}
+          MODE: ${{ matrix.mode }}
+          START: ${{ matrix.start }}
+          DUR: ${{ matrix.duration }}
         run: |
           set -euxo pipefail
           mkdir -p out
-          cat > /tmp/fetch.py <<'PY'
-          import json, subprocess
+          cat > /tmp/fetch_one.py <<'PY'
+          import json, os, subprocess
           from pathlib import Path
           import requests
-
+          name=os.environ['NAME']; bvid=os.environ['BVID']; page=int(os.environ['PAGE']); mode=os.environ['MODE']; start=os.environ['START']; dur=os.environ['DUR']
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
           S=requests.Session(); S.headers.update({'User-Agent':UA})
-          OUT=Path('out')
-          report=[]
-
-          def resolve(bvid,page=1):
-            ref=f'https://www.bilibili.com/video/{bvid}/'
-            h={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
-            j=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=h,timeout=30).json()
-            assert j.get('code')==0,j
-            d=j['data']; p=d['pages'][page-1]
-            pj=S.get('https://api.bilibili.com/x/player/playurl',params={'bvid':bvid,'cid':p['cid'],'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'},headers=h,timeout=30).json()
-            assert pj.get('code')==0,pj
-            du=(pj['data'].get('durl') or [])[0]
-            return du['url'], h, {'title':d.get('title'),'part':p.get('part'),'duration':p.get('duration'),'cid':p['cid'],'bytes':du.get('size'),'quality':pj['data'].get('quality')}
-
-          def full(name,bvid,page=1):
-            item={'name':name,'bvid':bvid,'page':page,'mode':'full'}
-            try:
-              url,h,meta=resolve(bvid,page); item.update(meta)
-              dest=OUT/f'{name}.mp4'
-              with S.get(url,headers=h,stream=True,timeout=180) as r:
-                r.raise_for_status()
-                with dest.open('wb') as f:
-                  for c in r.iter_content(1024*1024):
-                    if c:f.write(c)
-              item['saved_bytes']=dest.stat().st_size
-            except Exception as e:item['error']=repr(e)
-            report.append(item)
-
-          def segment(name,bvid,page,start,duration):
-            item={'name':name,'bvid':bvid,'page':page,'mode':'segment','start':start,'segment_duration':duration}
-            try:
-              url,h,meta=resolve(bvid,page); item.update(meta)
-              dest=OUT/f'{name}.mp4'
-              headers=f"Referer: https://www.bilibili.com/video/{bvid}/\\r\\nUser-Agent: {UA}\\r\\n"
-              cmd=['ffmpeg','-y','-loglevel','warning','-ss',start,'-headers',headers,'-i',url,'-t',duration,
-                   '-map','0:v:0','-an','-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30',
-                   '-c:v','libx264','-preset','veryfast','-crf','19','-movflags','+faststart',str(dest)]
-              cp=subprocess.run(cmd,text=True,capture_output=True,timeout=900)
-              item['ffmpeg_rc']=cp.returncode; item['ffmpeg_tail']=cp.stderr[-2000:]
-              if dest.exists():item['saved_bytes']=dest.stat().st_size
-            except Exception as e:item['error']=repr(e)
-            report.append(item)
-
-          full('01_broky_deagle_1v4_g2','BV1uz4y1t76k')
-          full('02_broky_1v4_ace_2022','BV1ye411g7vo')
-          full('03_broky_chengdu_mvp_2024','BV1HC411V7Zm')
-          full('04_broky_tec9_1v4_2025','BV1rkWqzQEai')
-          segment('05_antwerp_2022_final_tail','BV1rcSWYPEhX',2,'00:52:00','00:05:15')
-          segment('06_shanghai_2024_final_tail','BV1NeqoYqECx',3,'01:06:00','00:06:10')
-
-          (OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
-          print(json.dumps(report,ensure_ascii=False,indent=2))
+          ref=f'https://www.bilibili.com/video/{bvid}/'; h={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
+          item={'name':name,'bvid':bvid,'page':page,'mode':mode,'start':start,'requested_duration':dur}
+          j=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=h,timeout=30).json(); assert j.get('code')==0,j
+          d=j['data']; p=d['pages'][page-1]
+          pj=S.get('https://api.bilibili.com/x/player/playurl',params={'bvid':bvid,'cid':p['cid'],'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'},headers=h,timeout=30).json(); assert pj.get('code')==0,pj
+          du=(pj['data'].get('durl') or [])[0]; url=du['url']
+          item.update({'title':d.get('title'),'part':p.get('part'),'source_duration':p.get('duration'),'cid':p['cid'],'source_bytes':du.get('size'),'quality':pj['data'].get('quality')})
+          dest=Path('out')/f'{name}.mp4'
+          if mode=='full':
+            with S.get(url,headers=h,stream=True,timeout=240) as r:
+              r.raise_for_status()
+              with dest.open('wb') as f:
+                for c in r.iter_content(1024*1024):
+                  if c:f.write(c)
+          else:
+            headers=f'Referer: {ref}\\r\\nUser-Agent: {UA}\\r\\n'
+            cmd=['ffmpeg','-y','-loglevel','warning','-ss',start,'-headers',headers,'-i',url,'-t',dur,'-map','0:v:0','-an','-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30','-c:v','libx264','-preset','ultrafast','-crf','20','-movflags','+faststart',str(dest)]
+            cp=subprocess.run(cmd,text=True,capture_output=True,timeout=1000); item['ffmpeg_rc']=cp.returncode; item['ffmpeg_tail']=cp.stderr[-3000:]
+            if cp.returncode!=0: raise SystemExit(cp.returncode)
+          item['saved_bytes']=dest.stat().st_size
+          Path('out/report.json').write_text(json.dumps(item,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(item,ensure_ascii=False,indent=2))
           PY
-          python /tmp/fetch.py
-          find out -maxdepth 1 -name '*.mp4' -printf '%f\t%s bytes\n' | sort | tee out/files.txt
-          : > out/ffprobe.tsv
-          for f in out/*.mp4; do
-            [ -f "$f" ] || continue
-            printf '%s\t' "$(basename "$f")" >> out/ffprobe.tsv
-            ffprobe -v error -show_entries stream=width,height,r_frame_rate -show_entries format=duration,size -of compact=p=0:nk=1 "$f" | head -1 >> out/ffprobe.tsv || true
-            printf '\n' >> out/ffprobe.tsv
-          done
-      - name: Upload footage artifact
+          python /tmp/fetch_one.py
+          ffprobe -v error -show_entries stream=width,height,r_frame_rate -show_entries format=duration,size -of json out/${NAME}.mp4 > out/ffprobe.json
+      - name: Upload clip artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-verified-footage
+          name: broky-v2-${{ matrix.name }}
           path: out
           retention-days: 2
           compression-level: 0
