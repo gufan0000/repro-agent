@@ -10,70 +10,62 @@ permissions:
   contents: read
 
 jobs:
-  fetch-finals-segments:
+  fetch-finals-opening:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
-        shell: bash
-        run: |
-          set -euxo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-          python -m pip install -q requests
-      - name: Resolve Bilibili CDN and seek exact finals tails
+      - name: Install requests
+        run: python -m pip install -q requests
+      - name: Fetch first 18 MiB from verified finals maps
         shell: bash
         run: |
           set -euxo pipefail
           mkdir -p out
-          cat > /tmp/fetch_segments.py <<'PY'
-          import json, subprocess
+          cat > /tmp/fetch_head.py <<'PY'
+          import json
           from pathlib import Path
           import requests
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
           S=requests.Session(); S.headers.update({'User-Agent':UA})
-          OUT=Path('out'); report=[]
-          def resolve(bvid,page):
-              ref=f'https://www.bilibili.com/video/{bvid}/'
-              h={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
-              j=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=h,timeout=30).json()
-              assert j.get('code')==0,j
-              d=j['data']; p=d['pages'][page-1]
-              pj=S.get('https://api.bilibili.com/x/player/playurl',params={'bvid':bvid,'cid':p['cid'],'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'},headers=h,timeout=30).json()
-              assert pj.get('code')==0,pj
-              return pj['data']['durl'][0]['url'],ref,d.get('title'),p.get('part')
           jobs=[
-              ('05_antwerp_2022_final_tail','BV1rcSWYPEhX',2,'00:51:30','00:05:35'),
-              ('06_shanghai_2024_final_tail','BV1NeqoYqECx',3,'01:05:30','00:06:20'),
+            ('antwerp_final_open','BV1rcSWYPEhX',2),
+            ('shanghai_final_open','BV1NeqoYqECx',3),
           ]
-          for name,bvid,page,start,dur in jobs:
-              item={'name':name,'bvid':bvid,'page':page,'start':start,'duration':dur}
-              try:
-                  url,ref,title,part=resolve(bvid,page); item.update({'title':title,'part':part})
-                  dest=OUT/f'{name}.mp4'
-                  cmd=['ffmpeg','-y','-loglevel','warning','-ss',start,
-                       '-user_agent',UA,'-referer',ref,'-i',url,'-t',dur,
-                       '-map','0:v:0','-an','-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30',
-                       '-c:v','libx264','-preset','veryfast','-crf','19','-movflags','+faststart',str(dest)]
-                  cp=subprocess.run(cmd,text=True,capture_output=True,timeout=1200)
-                  item['rc']=cp.returncode; item['stderr_tail']=cp.stderr[-4000:]
-                  if dest.exists(): item['bytes']=dest.stat().st_size
-              except Exception as e: item['error']=repr(e)
-              report.append(item)
-          (OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          limit=18*1024*1024
+          report=[]
+          for name,bvid,page in jobs:
+            item={'name':name,'bvid':bvid,'page':page}
+            try:
+              ref=f'https://www.bilibili.com/video/{bvid}/'; h={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
+              j=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=h,timeout=30).json(); assert j.get('code')==0,j
+              d=j['data']; p=d['pages'][page-1]
+              pj=S.get('https://api.bilibili.com/x/player/playurl',params={'bvid':bvid,'cid':p['cid'],'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'},headers=h,timeout=30).json(); assert pj.get('code')==0,pj
+              du=pj['data']['durl'][0]; url=du['url']
+              item.update({'title':d.get('title'),'part':p.get('part'),'source_duration':p.get('duration'),'source_bytes':du.get('size')})
+              dest=Path('out')/f'{name}.mp4'; got=0
+              with S.get(url,headers=h,stream=True,timeout=180) as r:
+                r.raise_for_status()
+                with dest.open('wb') as f:
+                  for c in r.iter_content(1024*1024):
+                    if not c: continue
+                    remain=limit-got
+                    if remain<=0: break
+                    if len(c)>remain: c=c[:remain]
+                    f.write(c); got+=len(c)
+                    if got>=limit: break
+              item['saved_bytes']=got
+            except Exception as e: item['error']=repr(e)
+            report.append(item)
+          Path('out/report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
           print(json.dumps(report,ensure_ascii=False,indent=2))
           PY
-          python /tmp/fetch_segments.py
-          find out -maxdepth 1 -name '*.mp4' -printf '%f\t%s bytes\n' | sort | tee out/files.txt
-          for f in out/*.mp4; do
-            [ -f "$f" ] || continue
-            ffprobe -v error -show_entries format=duration,size -show_entries stream=width,height,r_frame_rate -of json "$f"
-          done
-      - name: Upload finals artifact
+          python /tmp/fetch_head.py
+          find out -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort
+      - name: Upload opening footage
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-finals-footage
+          name: broky-v2-finals-opening
           path: out
           retention-days: 2
           compression-level: 0
