@@ -10,67 +10,92 @@ permissions:
   contents: read
 
 jobs:
-  fetch-official-youtube-footage:
+  fetch-bilibili-via-api:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Install media tools
+      - name: Install tools
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-          python -m pip install -q --upgrade pip
-          python -m pip install -q --upgrade 'yt-dlp[default,curl-cffi]'
-      - name: Download official footage excerpts
+          sudo apt-get install -y -qq ffmpeg jq
+          python -m pip install -q requests
+      - name: Resolve Bilibili public play URLs and fetch selected footage
         shell: bash
         run: |
-          set -uo pipefail
-          mkdir -p out
-          : > out/download.log
-          grab_section() {
-            name="$1"; url="$2"; section="$3"
-            echo "===== $name :: $url :: $section =====" | tee -a out/download.log
-            yt-dlp --no-warnings --impersonate chrome \
-              --format 'bv*[height<=720]+ba/b[height<=720]/b' \
-              --merge-output-format mp4 --force-keyframes-at-cuts \
-              --download-sections "$section" \
-              --output "out/${name}.%(ext)s" "$url" 2>&1 | tee -a out/download.log || true
-          }
-          grab_full() {
-            name="$1"; url="$2"
-            echo "===== $name :: $url =====" | tee -a out/download.log
-            yt-dlp --no-warnings --impersonate chrome \
-              --format 'bv*[height<=720]+ba/b[height<=720]/b' \
-              --merge-output-format mp4 \
-              --output "out/${name}.%(ext)s" "$url" 2>&1 | tee -a out/download.log || true
-          }
+          set -euxo pipefail
+          mkdir -p out/raw out/final
+          cat > /tmp/fetch_bili.py <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          import requests
 
-          # ESL Archives: official IEM Katowice 2022 grand final map VODs.
-          # Map 2 chapter marks broky's 1v2 at 01:50:18.
-          grab_section 01_kato22_broky_1v2 'https://www.youtube.com/watch?v=SQnw7Z1YOn4' '*01:49:30-01:52:10'
-          # Map 3: the 13-13 breaker sits around round 27, starting 00:49:13.
-          grab_section 02_kato22_broky_4awp 'https://www.youtube.com/watch?v=jUe-NSgmAgQ' '*00:48:45-00:51:20'
+          UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36'
+          S = requests.Session()
+          S.headers.update({'User-Agent': UA, 'Accept': 'application/json,text/plain,*/*'})
+          out = Path('out'); (out/'raw').mkdir(parents=True, exist_ok=True); (out/'final').mkdir(parents=True, exist_ok=True)
 
-          # ESL Counter-Strike Extra: dedicated official broky Chengdu MVP montage.
-          grab_full 03_chengdu24_broky_mvp 'https://www.youtube.com/watch?v=M_4iBLZ79Xc'
-
-          # PGL Counter-Strike Highlights: official Shanghai Major grand final highlights.
-          grab_full 04_shanghai24_grand_final 'https://www.youtube.com/watch?v=LvcfSP2PUPI'
-
-          find out -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          # name, bvid, page, trim_start, trim_duration. None = whole short video.
+          jobs = [
+            ('01_early_2020_vitality', 'BV1Zr4y1w77S', 1, None, None),
+            ('02_broky_deagle_1v4', 'BV1uz4y1t76k', 1, None, None),
+            ('03_broky_1v4_ace_2022', 'BV1ye411g7vo', 1, None, None),
+            ('04_chengdu_mvp_2024', 'BV1HC411V7Zm', 1, None, None),
+            ('05_broky_tec9_1v4_2025', 'BV1rkWqzQEai', 1, None, None),
+            ('06_antwerp_final_tail', 'BV1rcSWYPEhX', 2, '00:49:00', '00:08:15'),
+            ('07_shanghai_final_tail', 'BV1NeqoYqECx', 3, '01:04:30', '00:07:34'),
+          ]
+          report=[]
+          for name,bvid,page,start,dur in jobs:
+            ref=f'https://www.bilibili.com/video/{bvid}/'
+            headers={'User-Agent':UA,'Referer':ref,'Origin':'https://www.bilibili.com'}
+            try:
+              r=S.get('https://api.bilibili.com/x/web-interface/view',params={'bvid':bvid},headers=headers,timeout=30)
+              info=r.json(); assert info.get('code')==0, info
+              pages=info['data']['pages']; p=pages[page-1]; cid=p['cid']
+              pr=S.get('https://api.bilibili.com/x/player/playurl',params={
+                'bvid':bvid,'cid':cid,'qn':64,'fnval':0,'fnver':0,'fourk':0,'platform':'html5'
+              },headers=headers,timeout=30)
+              play=pr.json(); assert play.get('code')==0, play
+              durl=(play.get('data') or {}).get('durl') or []
+              if not durl:
+                raise RuntimeError('no durl: '+json.dumps(play)[:1000])
+              url=durl[0]['url']
+              report.append({'name':name,'bvid':bvid,'page':page,'cid':cid,'part':p.get('part'),'duration':p.get('duration'),'play_quality':play['data'].get('quality'),'size':durl[0].get('size')})
+              raw=out/'raw'/f'{name}.mp4'
+              if start is None:
+                with S.get(url,headers=headers,stream=True,timeout=120) as rr:
+                  rr.raise_for_status()
+                  with raw.open('wb') as f:
+                    for chunk in rr.iter_content(1024*1024):
+                      if chunk: f.write(chunk)
+              else:
+                hdr=f'Referer: {ref}\\r\\nUser-Agent: {UA}\\r\\n'
+                cmd=['ffmpeg','-y','-loglevel','warning','-ss',start,'-headers',hdr,'-i',url,'-t',dur,'-c','copy',str(raw)]
+                subprocess.run(cmd,check=True)
+              final=out/'final'/f'{name}.mp4'
+              subprocess.run(['ffmpeg','-y','-loglevel','warning','-i',str(raw),'-vf','scale=-2:720:flags=lanczos,fps=30','-c:v','libx264','-preset','fast','-crf','21','-c:a','aac','-b:a','128k','-movflags','+faststart',str(final)],check=True)
+              raw.unlink(missing_ok=True)
+            except Exception as e:
+              report.append({'name':name,'bvid':bvid,'error':repr(e)})
+          (out/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+          python /tmp/fetch_bili.py
+          find out/final -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          cat out/report.json
           : > out/ffprobe.tsv
-          for f in out/*.mp4 out/*.webm out/*.mkv; do
+          for f in out/final/*.mp4; do
             [ -f "$f" ] || continue
             printf '%s\t' "$(basename "$f")" >> out/ffprobe.tsv
-            ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv || true
+            ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv
             printf '\n' >> out/ffprobe.tsv
           done
       - name: Upload footage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-official-footage
+          name: broky-v2-bilibili-api-footage
           path: out
           retention-days: 2
           compression-level: 0
