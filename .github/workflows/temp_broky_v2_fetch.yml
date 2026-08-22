@@ -12,79 +12,73 @@ permissions:
 jobs:
   fetch-broky-footage:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install media tools
-        shell: bash
-        run: |
-          set -euxo pipefail
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-          python -m pip install -q --upgrade pip
-          python -m pip install -q --upgrade 'yt-dlp[default,curl-cffi]'
-
-      - name: Fetch selected public clips
+      - name: Download Twitch/HLTV highlight assets
         shell: bash
         run: |
           set -uo pipefail
           mkdir -p out
           : > out/download.log
 
-          grab() {
-            name="$1"; url="$2"; shift 2
-            echo "===== $name :: $url =====" | tee -a out/download.log
-            yt-dlp --no-warnings --ignore-errors --no-playlist \
-              --impersonate chrome \
-              --format "bv*[height<=720]+ba/b[height<=720]/b" \
-              --merge-output-format mp4 \
-              --output "out/${name}.%(ext)s" "$@" "$url" 2>&1 | tee -a out/download.log || true
+          grab_uuid() {
+            name="$1"; uuid="$2"
+            echo "===== $name :: $uuid =====" | tee -a out/download.log
+            ok=0
+            for q in 1080 720 480 360; do
+              url="https://d1ndex63qxojbr.cloudfront.net/nauth/${uuid}/landscape/h264/${q}/index.mp4"
+              if curl -fL --retry 2 --connect-timeout 15 --max-time 120 -o "out/${name}_${q}.mp4" "$url" 2>>out/download.log; then
+                echo "OK ${name} ${q}" | tee -a out/download.log
+                ok=1
+                break
+              fi
+              rm -f "out/${name}_${q}.mp4"
+            done
+            [ "$ok" = 1 ] || echo "FAILED ${name}" | tee -a out/download.log
           }
 
-          # Early FaZe / CSGO period.
-          grab 01_early_2020_vitality "https://www.bilibili.com/video/BV1Zr4y1w77S/"
+          # IEM Katowice 2022 — FaZe vs G2 / Heroic, broky signature clutch identity.
+          grab_uuid 01_kato22_broky_4awp "3b500603-4ce7-4539-9dad-2d5dfbafe9d7"
+          grab_uuid 02_kato22_broky_1v2_final "26874f17-703f-446a-af95-33f9f789bca4"
+          grab_uuid 03_kato22_broky_1v2_heroic "f0c34822-d0c8-45bf-a587-fa115eb486fd"
+          grab_uuid 04_kato22_broky_followup_clutch "5fa83af4-558d-4815-957f-72b11bb2348f"
+          grab_uuid 05_kato22_broky_3ak "2a5235ec-44ce-4fbd-aa8a-17d9a7a25394"
+          grab_uuid 06_kato22_broky_deagle_ace "84ef1a4a-db9d-4eac-a840-ebccc5b8729e"
 
-          # Signature clutch identity / peak-era highlights.
-          grab 02_deagle_1v4_g2 "https://www.bilibili.com/video/BV1uz4y1t76k/"
-          grab 03_ace_1v4_2022 "https://www.bilibili.com/video/BV1ye411g7vo/"
-          grab 04_top10_2023 "https://www.bilibili.com/video/BV1Ug4y1D7wr/"
-          grab 05_chengdu_mvp_2024 "https://www.bilibili.com/video/BV1HC411V7Zm/"
+          # IEM Chengdu 2024 — MVP tournament and title celebration.
+          grab_uuid 10_chengdu24_title_part1 "b602096a-372e-4b2c-bc54-5e3dc2df73b6"
+          grab_uuid 11_chengdu24_title_part2 "84bc66e0-6f15-4ae2-8ecb-8191667d4493"
+          grab_uuid 12_chengdu24_broky_3ak "36184316-3258-43a0-b9ba-a436c465dce5"
+          grab_uuid 13_chengdu24_broky_noscopes "aaae198a-09e2-4906-8b70-3e45f5555649"
+          grab_uuid 14_chengdu24_team_turnaround "19d8abd4-26d0-4a32-b195-9f5efaa80b3f"
+          grab_uuid 15_chengdu24_broky_clutch "84927afe-51ab-4492-9981-174e50b6410d"
 
-          # 2025 clips for the late-career tension before the bench card.
-          grab 08_tec9_1v4_2025 "https://www.bilibili.com/video/BV1rkWqzQEai/"
-          grab 09_awp_1v3_2025 "https://www.bilibili.com/video/BV14NhozNEr4/"
-
-          # Major finals: only short tails to keep the artifact compact.
-          yt-dlp --no-warnings --ignore-errors --impersonate chrome \
-              --format "bv*[height<=720]+ba/b[height<=720]/b" \
-              --merge-output-format mp4 \
-              --playlist-items 2 \
-              --download-sections "*00:50:00-00:57:15" \
-              --output "out/06_antwerp_final_tail.%(ext)s" \
-              "https://www.bilibili.com/video/BV1rcSWYPEhX/" 2>&1 | tee -a out/download.log || true
-
-          yt-dlp --no-warnings --ignore-errors --impersonate chrome \
-              --format "bv*[height<=720]+ba/b[height<=720]/b" \
-              --merge-output-format mp4 \
-              --playlist-items 3 \
-              --download-sections "*01:05:30-01:12:04" \
-              --output "out/07_shanghai_final_tail.%(ext)s" \
-              "https://www.bilibili.com/video/BV1NeqoYqECx/" 2>&1 | tee -a out/download.log || true
+          # Shanghai Major 2024 grand final — the actual fall, not a city-outline placeholder.
+          grab_uuid 20_shanghai24_final_round "453b468a-36c4-4016-894d-8b154b9ac1ec"
+          grab_uuid 21_shanghai24_faze_stay_alive "7690329c-8c57-46fc-bfac-ccedfbed0c34"
+          grab_uuid 22_shanghai24_broky_1v2 "14c15d61-051e-42fd-a177-8b968c9c22e0"
+          grab_uuid 23_shanghai24_ropz_3awp "427bf6a5-5ebe-447e-b1e5-31578c9a3271"
 
           find out -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
-          for f in out/*.mp4 out/*.webm out/*.mkv; do
+
+      - name: Probe downloads
+        shell: bash
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          : > out/ffprobe.tsv
+          for f in out/*.mp4; do
             [ -f "$f" ] || continue
-            ffprobe -v error \
-              -show_entries format=filename,duration,size \
-              -show_entries stream=index,codec_name,width,height,r_frame_rate \
-              -of json "$f" >> out/ffprobe.jsonl 2>/dev/null || true
+            printf '%s\t' "$(basename "$f")" >> out/ffprobe.tsv
+            ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv || true
+            printf '\n' >> out/ffprobe.tsv
           done
 
       - name: Upload footage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-footage
+          name: broky-v2-footage-direct
           path: out
           retention-days: 2
           compression-level: 0
