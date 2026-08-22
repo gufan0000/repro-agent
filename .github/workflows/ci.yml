@@ -1,6 +1,8 @@
 name: Temporary broky V2 footage fetch
 
 on:
+  push:
+    branches: ['temp/broky-v2-footage-20260823']
   pull_request:
     branches: [main]
 
@@ -37,16 +39,12 @@ jobs:
               --output "out/${name}.%(ext)s" "$@" "$url" 2>&1 | tee -a out/download.log || true
           }
 
-          # Early FaZe / CSGO era.
           grab 01_early_2020_vitality "https://www.bilibili.com/video/BV1Zr4y1w77S/"
-
-          # Signature clutches / peak identity.
           grab 02_deagle_1v4_g2 "https://www.bilibili.com/video/BV1uz4y1t76k/"
           grab 03_ace_1v4_2022 "https://www.bilibili.com/video/BV1ye411g7vo/"
           grab 04_top10_2023 "https://www.bilibili.com/video/BV1Ug4y1D7wr/"
           grab 05_chengdu_mvp_2024 "https://www.bilibili.com/video/BV1HC411V7Zm/"
 
-          # Shanghai Major: semifinal/arena atmosphere and the final map tail.
           yt-dlp --no-warnings --ignore-errors \
               --format "bv*[height<=720]+ba/b[height<=720]/b" \
               --merge-output-format mp4 \
@@ -63,7 +61,6 @@ jobs:
               --output "out/07_shanghai_final_tail.%(ext)s" \
               "https://www.bilibili.com/video/BV1NeqoYqECx/" 2>&1 | tee -a out/download.log || true
 
-          # Later-period footage, useful before the bench card.
           grab 08_broky_tec9_1v4_2025 "https://www.bilibili.com/video/BV1rkWqzQEai/"
           grab 09_broky_awp_1v3_2025 "https://www.bilibili.com/video/BV14NhozNEr4/"
 
