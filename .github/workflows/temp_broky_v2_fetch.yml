@@ -10,84 +10,86 @@ permissions:
   contents: read
 
 jobs:
-  fetch-youtube-footage:
+  fetch-reddit-footage:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install media and PO-token tools
+      - name: Install tools
         shell: bash
         run: |
           set -euxo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg curl
-          python -m pip install -q --upgrade pip
-          python -m pip install -q --upgrade yt-dlp bgutil-ytdlp-pot-provider
-          docker run -d --rm --name bgutil-provider -p 4416:4416 brainicism/bgutil-ytdlp-pot-provider:latest
-          for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:4416 >/dev/null 2>&1; then break; fi
-            sleep 1
-          done
-          yt-dlp --version
-
-      - name: Fetch precise public match excerpts
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install -q requests
+      - name: Fetch Reddit native videos
         shell: bash
         run: |
-          set -uo pipefail
+          set -euxo pipefail
           mkdir -p out/raw out/final
-          : > out/download.log
+          cat > /tmp/reddit_fetch.py <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import requests
 
-          ytdl_section() {
-            local name="$1" url="$2" section="$3"
-            echo "===== $name :: $url :: $section =====" | tee -a out/download.log
-            yt-dlp \
-              --no-warnings --ignore-errors --no-playlist \
-              --remote-components ejs:github \
-              --extractor-args "youtube:player_client=mweb,web_embedded" \
-              --download-sections "$section" \
-              --force-keyframes-at-cuts \
-              --format "bv*[height<=720]+ba/b[height<=720]/b" \
-              --merge-output-format mp4 \
-              --output "out/raw/${name}.%(ext)s" \
-              "$url" 2>&1 | tee -a out/download.log || true
-          }
-
-          ytdl_whole() {
-            local name="$1" url="$2"
-            echo "===== $name :: $url =====" | tee -a out/download.log
-            yt-dlp \
-              --no-warnings --ignore-errors --no-playlist \
-              --remote-components ejs:github \
-              --extractor-args "youtube:player_client=mweb,web_embedded" \
-              --format "bv*[height<=720]+ba/b[height<=720]/b" \
-              --merge-output-format mp4 \
-              --output "out/raw/${name}.%(ext)s" \
-              "$url" 2>&1 | tee -a out/download.log || true
-          }
-
-          # IEM Katowice 2022 grand final: broky multi-kills on Inferno and the iconic 4-AWP round on Dust2.
-          ytdl_section "01_kato22_inferno_broky_3k" "https://www.youtube.com/watch?v=bucux7fBcgE" "*00:48:45-00:50:25"
-          ytdl_section "02_kato22_dust2_broky_4awp" "https://www.youtube.com/watch?v=jUe-NSgmAgQ" "*00:49:05-00:50:50"
-
-          # IEM Chengdu 2024: dedicated broky MVP highlight video.
-          ytdl_whole "03_chengdu24_broky_mvp" "https://www.youtube.com/watch?v=M_4iBLZ79Xc"
-
-          # Shanghai Major 2024: official PGL highlight package + raw winning moment for the emotional drop.
-          ytdl_section "04_shanghai24_pgl_highlights" "https://www.youtube.com/watch?v=LvcfSP2PUPI" "*00:00:00-00:08:00"
-          ytdl_whole "05_shanghai24_winning_moment" "https://www.youtube.com/watch?v=Ovci_VU4Kb0"
-
-          # Normalize whatever succeeded to stable 720p30 H.264 clips.
-          for f in out/raw/*; do
-            [ -f "$f" ] || continue
-            base="$(basename "${f%.*}")"
-            ffmpeg -y -loglevel warning -i "$f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30" \
-              -c:v libx264 -preset fast -crf 20 -c:a aac -b:a 128k -movflags +faststart \
-              "out/final/${base}.mp4" || true
-          done
-
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36 broky-edit/1.0'
+          S=requests.Session(); S.headers.update({'User-Agent':UA})
+          OUT=Path('out'); (OUT/'raw').mkdir(parents=True,exist_ok=True); (OUT/'final').mkdir(parents=True,exist_ok=True)
+          posts=[
+            ('01_katowice22_broky_1v2','t2w54n'),
+            ('02_broky_1v4_ace_2022','wzx120'),
+            ('03_broky_g2_1v4_repost','1u8j9p7'),
+          ]
+          report=[]
+          def find_video(d):
+            candidates=[d]
+            candidates += d.get('crosspost_parent_list') or []
+            for x in candidates:
+              for key in ('secure_media','media'):
+                m=x.get(key) or {}
+                rv=m.get('reddit_video') or {}
+                if rv.get('fallback_url'):
+                  return rv.get('fallback_url'),rv
+              pv=x.get('preview') or {}
+              rv=pv.get('reddit_video_preview') or {}
+              if rv.get('fallback_url'):
+                return rv.get('fallback_url'),rv
+            return None,None
+          for name,pid in posts:
+            item={'name':name,'id':pid}
+            try:
+              urls=[f'https://www.reddit.com/comments/{pid}.json?raw_json=1',f'https://old.reddit.com/comments/{pid}.json?raw_json=1']
+              obj=None
+              for u in urls:
+                r=S.get(u,timeout=30,headers={'User-Agent':UA,'Accept':'application/json'})
+                item.setdefault('http',[]).append([u,r.status_code,r.text[:120]])
+                if r.ok:
+                  try: obj=r.json(); break
+                  except Exception: pass
+              if obj is None: raise RuntimeError('reddit json unavailable')
+              d=obj[0]['data']['children'][0]['data']
+              item.update({'title':d.get('title'),'permalink':d.get('permalink'),'dest':d.get('url_overridden_by_dest') or d.get('url')})
+              url,rv=find_video(d)
+              if not url: raise RuntimeError('no native reddit video; dest='+str(item.get('dest')))
+              url=url.replace('&amp;','&')
+              item['video_url']=url; item['reddit_video']=rv
+              raw=OUT/'raw'/f'{name}.mp4'
+              rr=S.get(url,stream=True,timeout=120,headers={'User-Agent':UA,'Referer':'https://www.reddit.com/'})
+              rr.raise_for_status()
+              with raw.open('wb') as f:
+                for chunk in rr.iter_content(1024*1024):
+                  if chunk: f.write(chunk)
+              final=OUT/'final'/f'{name}.mp4'
+              subprocess.run(['ffmpeg','-y','-loglevel','warning','-i',str(raw),'-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30','-an','-c:v','libx264','-preset','fast','-crf','19','-movflags','+faststart',str(final)],check=True)
+              item['downloaded']=raw.stat().st_size; item['final']=final.stat().st_size
+            except Exception as e:
+              item['error']=repr(e)
+            report.append(item)
+          (OUT/'report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+          PY
+          python /tmp/reddit_fetch.py
           find out/final -maxdepth 1 -type f -printf '%f\t%s bytes\n' | sort | tee out/files.txt
+          cat out/report.json
           : > out/ffprobe.tsv
           for f in out/final/*.mp4; do
             [ -f "$f" ] || continue
@@ -95,13 +97,10 @@ jobs:
             ffprobe -v error -show_entries format=duration,size -of default=nw=1:nk=1 "$f" | tr '\n' '\t' >> out/ffprobe.tsv
             printf '\n' >> out/ffprobe.tsv
           done
-          cat out/files.txt
-          cat out/ffprobe.tsv
-
       - name: Upload footage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: broky-v2-youtube-footage
+          name: broky-v2-reddit-footage
           path: out
           retention-days: 2
           compression-level: 0
