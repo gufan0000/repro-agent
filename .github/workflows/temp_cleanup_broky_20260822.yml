@@ -1,0 +1,30 @@
+name: Temporary broky branch cleanup
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp_cleanup_broky_20260822.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Delete temporary media branch
+        shell: bash
+        run: git push origin --delete 'temp/broky-video-assets-20260822' || true
+      - name: Remove cleanup workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm '.github/workflows/temp_cleanup_broky_20260822.yml'
+          git commit -m 'chore: remove temporary broky cleanup workflow'
+          git push origin HEAD:main
