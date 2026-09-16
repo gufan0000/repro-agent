@@ -1,0 +1,22 @@
+name: Public media network diagnostic
+on:
+  push:
+    branches: ['temp/public-media-network-20260916']
+    paths: ['.github/workflows/public-media-network-probe.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verify public media connectivity
+        run: |
+          mkdir -p probe
+          curl -L --fail --max-time 45 'https://game-tournaments.com/media/news/n64560.jpeg' -o probe/chopper.jpeg
+          echo 'Public standard runner started and downloaded a public media file.' > probe/status.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-media-network-probe
+          path: probe/
+          retention-days: 1
