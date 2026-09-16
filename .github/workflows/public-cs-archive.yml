@@ -1,0 +1,105 @@
+name: Public CS archive source index
+on:
+  push:
+    branches: ['temp/public-media-network-20260916']
+    paths: ['.github/workflows/public-cs-archive.yml']
+permissions:
+  contents: read
+jobs:
+  acquire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Install media tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-cjk
+          python -m pip install -q 'yt-dlp[default]' pillow requests numpy scipy
+      - name: Acquire and index public sources
+        shell: bash
+        run: |
+          mkdir -p archive/media archive/info review/sheets review/music /tmp/raw
+          cat > /tmp/acquire.py <<'PY'
+          import subprocess,json,math,traceback
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor,as_completed
+          from PIL import Image,ImageDraw,ImageFont
+          A=Path('archive');R=Path('review');T=Path('/tmp/raw')
+          sources=[
+          ('01_vega_tribute','https://www.youtube.com/watch?v=apJuxPf4_20','video'),
+          ('02_kato_trophy','https://www.facebook.com/ESLCS/videos/1592758408223927/','video'),
+          ('03_chopper_defeat','https://www.facebook.com/teamspiritpage/videos/1270051714680169/','video'),
+          ('04_chopper_interview','https://www.facebook.com/teamspiritpage/videos/840903274562511/','video'),
+          ('05_chopper_pregame','https://www.facebook.com/teamspiritpage/videos/650477887698361/','video'),
+          ('06_chopper_ace','https://www.facebook.com/teamspiritpage/videos/670869745968594/','video'),
+          ('07_shanghai_comms','https://www.facebook.com/teamspiritpage/videos/1819738118763465/','video'),
+          ('08_chopper_clutch','https://www.facebook.com/teamspiritpage/videos/699184275477303/','video'),
+          ('09_chopper_chopped','https://www.facebook.com/teamspiritpage/videos/24595656296800161/','video'),
+          ('10_chopper_knife','https://www.facebook.com/teamspiritpage/videos/774014895023748/','video'),
+          ('11_chopper_nt','https://www.facebook.com/teamspiritpage/videos/1303787434301663/','video'),
+          ('12_chopper_postmatch','https://www.facebook.com/teamspiritpage/videos/589408113629179/','video'),
+          ('13_shanghai_teamspeak','https://www.youtube.com/watch?v=5FgRI5Ffegk','video'),
+          ('14_cast_mouz','https://www.youtube.com/watch?v=2YkANJRCd_4','video'),
+          ('15_cast_luminosity','https://www.youtube.com/watch?v=FJ_XlQQhck4','video'),
+          ('m01_canghai_billy','https://www.youtube.com/watch?v=3lEPacn_dzI','audio'),
+          ('m02_canghai_hezi','https://www.youtube.com/watch?v=QpWx_9ytszY','audio'),
+          ('m03_jianghu_minglong','https://www.youtube.com/watch?v=DNIT-8HBdvo','audio'),
+          ('m04_canghai_instrumental','https://www.youtube.com/watch?v=WsRtLAAe1To','audio'),
+          ('m05_qilin_canghai','https://www.facebook.com/ZJSTVMusic/videos/1464926364260552/','audio')]
+          def run(c,timeout=240):
+              p=subprocess.run(c,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,timeout=timeout)
+              if p.returncode: raise RuntimeError(p.stdout[-3500:])
+              return p.stdout
+          font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',15)
+          def get(x):
+              n,u,kind=x;r=dict(id=n,url=u,kind=kind)
+              try:
+                  fmt='ba/b' if kind=='audio' else 'bv*[height<=1080]+ba/b[height<=1080]/b'
+                  cmd=['yt-dlp','--no-playlist','--socket-timeout','20','--retries','1','--fragment-retries','1','--max-filesize','750M','-f',fmt,'--write-info-json','--merge-output-format','mp4','-o',str(T/(n+'.%(ext)s')),u]
+                  log=run(cmd,300);(A/'info'/f'{n}.log').write_text(log)
+                  info=json.loads((T/(n+'.info.json')).read_text());(A/'info'/f'{n}.json').write_text(json.dumps(info,ensure_ascii=False))
+                  r.update(title=info.get('title'),uploader=info.get('uploader'),upload_date=info.get('upload_date'),description=info.get('description'))
+                  p=next(p for p in T.glob(n+'.*') if p.suffix in ['.mp4','.webm','.mkv','.m4a','.mp3','.opus'])
+                  probe=json.loads(run(['ffprobe','-v','error','-show_format','-show_streams','-of','json',str(p)],40));d=float(probe['format']['duration']);r['duration']=d
+                  if kind=='audio':
+                      dst=R/'music'/f'{n}.m4a'
+                      run(['ffmpeg','-v','error','-y','-i',str(p),'-vn','-c:a','aac','-b:a','192k',str(dst)],120)
+                      r['file']='music/'+dst.name
+                  else:
+                      dst=A/'media'/f'{n}.mp4'
+                      if p.suffix=='.mp4': p.rename(dst)
+                      else: run(['ffmpeg','-v','error','-y','-i',str(p),'-map','0:v:0','-map','0:a?','-c','copy',str(dst)],120)
+                      r['file']='media/'+dst.name
+                      vs=next(s for s in probe['streams'] if s['codec_type']=='video');r.update(width=vs['width'],height=vs['height'])
+                      count=32 if d>120 else 20
+                      canvas=Image.new('RGB',(1280,202*math.ceil(count/4)),(18,18,18));dr=ImageDraw.Draw(canvas)
+                      times=[(i+.35)*d/count for i in range(count)];r['sheet_times']=times
+                      for j,t in enumerate(times):
+                          pic=T/f'{n}_{j}.jpg'
+                          run(['ffmpeg','-v','error','-y','-ss',str(t),'-i',str(dst),'-vf','scale=320:180:force_original_aspect_ratio=decrease,pad=320:180:(ow-iw)/2:(oh-ih)/2','-frames:v','1',str(pic)],45)
+                          im=Image.open(pic);cx=(j%4)*320;cy=(j//4)*202;canvas.paste(im,(cx,cy));dr.text((cx+5,cy+182),f'{n} | {t:.2f}s',font=font,fill='white')
+                      canvas.save(R/'sheets'/f'{n}.jpg',quality=88)
+                  r['status']='ok'
+              except Exception as e:r.update(status='error',error=str(e));print(traceback.format_exc(),flush=True)
+              print(n,r['status'],flush=True);return r
+          records=[]
+          with ThreadPoolExecutor(max_workers=4) as pool:
+              for f in as_completed([pool.submit(get,s) for s in sources]):
+                  records.append(f.result())
+                  for folder in [A,R]: (folder/'sources.json').write_text(json.dumps(records,ensure_ascii=False,indent=2))
+          PY
+          python /tmp/acquire.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-cs-review-01
+          path: review/
+          retention-days: 1
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-cs-archive-01
+          path: archive/
+          retention-days: 1
+          compression-level: 0
