@@ -1,0 +1,54 @@
+name: Public archive audio timing
+on:
+  push:
+    branches: ['temp/public-media-network-20260916']
+    paths: ['.github/workflows/public-cs-audio-analysis.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-cs-review-01
+          run-id: 35062463743
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: input/review
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-cs-archive-01
+          run-id: 35062463743
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: input/archive
+      - name: Install acoustic analysis tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install -q faster-whisper scipy numpy soundfile
+      - name: Create acoustic timing notes
+        run: |
+          mkdir -p notes
+          cat > /tmp/audio_analysis.py <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          from faster_whisper import WhisperModel
+          model=WhisperModel('small',device='cpu',compute_type='int8',cpu_threads=4,num_workers=1)
+          inputs=[('music','input/review/music/m05_qilin_canghai.m4a','zh'),('defeat','input/archive/media/03_chopper_defeat.mp4','ru'),('comms','input/archive/media/07_shanghai_comms.mp4','ru'),('postmatch','input/archive/media/12_chopper_postmatch.mp4',None)]
+          for name,path,lang in inputs:
+              segments,info=model.transcribe(path,language=lang,beam_size=5,word_timestamps=True,vad_filter=False,condition_on_previous_text=False)
+              records=[]
+              for s in segments:
+                  records.append(dict(start=s.start,end=s.end,text=s.text,words=[dict(start=w.start,end=w.end,word=w.word,probability=w.probability) for w in (s.words or [])]))
+              Path('notes',name+'.json').write_text(json.dumps(dict(language=info.language,segments=records),ensure_ascii=False,indent=2))
+              print(name,'segments',len(records),flush=True)
+          PY
+          python /tmp/audio_analysis.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-cs-audio-timing
+          path: notes/
+          retention-days: 1
